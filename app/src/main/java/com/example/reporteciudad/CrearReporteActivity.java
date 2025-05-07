@@ -21,6 +21,7 @@ public class CrearReporteActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA_PERMISSION = 100;
     private ActivityResultLauncher<Intent> cameraLauncher;
     private Bitmap fotoCapturada;
+    private ReporteManager reporteManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +29,7 @@ public class CrearReporteActivity extends AppCompatActivity {
         binding = ActivityCrearReporteBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        reporteManager = new ReporteManager(this);
         setupCameraLauncher();
         setupButtons();
     }
@@ -92,9 +94,23 @@ public class CrearReporteActivity extends AppCompatActivity {
         byte[] imageBytes = baos.toByteArray();
         String fotoBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT);
 
-        // Aquí iría la lógica para enviar el reporte al servidor
-        // Por ahora solo mostramos un mensaje
-        Toast.makeText(this, "Reporte enviado correctamente", Toast.LENGTH_SHORT).show();
-        finish();
+        // Crear y guardar el reporte
+        Reporte reporte = new Reporte(
+            binding.etTitulo.getText().toString(),
+            binding.etDescripcion.getText().toString(),
+            fotoBase64
+        );
+        
+        reporteManager.guardarReporte(reporte);
+
+        // Mostrar el ID del reporte
+        String mensaje = "Reporte guardado correctamente\nID del reporte: " + reporte.getId();
+        Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show();
+        
+        // Limpiar campos
+        binding.etTitulo.setText("");
+        binding.etDescripcion.setText("");
+        binding.ivFoto.setImageBitmap(null);
+        fotoCapturada = null;
     }
 } 
