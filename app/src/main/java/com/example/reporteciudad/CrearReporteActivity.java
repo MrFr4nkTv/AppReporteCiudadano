@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
@@ -18,12 +19,18 @@ import androidx.core.content.ContextCompat;
 import com.example.reporteciudad.databinding.ActivityCrearReporteBinding;
 import com.example.reporteciudad.databinding.DialogReporteIdBinding;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-public class CrearReporteActivity extends AppCompatActivity {
+public class CrearReporteActivity extends AppCompatActivity implements FotosAdapter.OnFotoClickListener {
     private ActivityCrearReporteBinding binding;
     private static final int REQUEST_CAMERA_PERMISSION = 100;
+    private static final int REQUEST_GALLERY_PERMISSION = 101;
     private ActivityResultLauncher<Intent> cameraLauncher;
-    private Bitmap fotoCapturada;
+    private ActivityResultLauncher<Intent> galleryLauncher;
+    private List<Bitmap> fotos;
+    private FotosAdapter fotosAdapter;
     private ReporteManager reporteManager;
 
     @Override
@@ -39,7 +46,9 @@ public class CrearReporteActivity extends AppCompatActivity {
         }
 
         reporteManager = new ReporteManager(this);
-        setupCameraLauncher();
+        fotos = new ArrayList<>();
+        setupRecyclerView();
+        setupLaunchers();
         setupButtons();
     }
 
@@ -49,14 +58,34 @@ public class CrearReporteActivity extends AppCompatActivity {
         return true;
     }
 
-    private void setupCameraLauncher() {
+    private void setupRecyclerView() {
+        fotosAdapter = new FotosAdapter(fotos, this);
+        binding.rvFotos.setAdapter(fotosAdapter);
+    }
+
+    private void setupLaunchers() {
         cameraLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Bundle extras = result.getData().getExtras();
-                    fotoCapturada = (Bitmap) extras.get("data");
-                    binding.ivFoto.setImageBitmap(fotoCapturada);
+                    Bitmap foto = (Bitmap) extras.get("data");
+                    fotosAdapter.agregarFoto(foto);
+                }
+            }
+        );
+
+        galleryLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri selectedImage = result.getData().getData();
+                    try {
+                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImage);
+                        fotosAdapter.agregarFoto(bitmap);
+                    } catch (IOException e) {
+                        Toast.makeText(this, "Error al cargar la imagen", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         );
@@ -74,6 +103,17 @@ public class CrearReporteActivity extends AppCompatActivity {
             }
         });
 
+        binding.btnSeleccionarFoto.setOnClickListener(v -> {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        REQUEST_GALLERY_PERMISSION);
+            } else {
+                abrirGaleria();
+            }
+        });
+
         binding.btnEnviarReporte.setOnClickListener(v -> {
             if (validarCampos()) {
                 enviarReporte();
@@ -84,6 +124,11 @@ public class CrearReporteActivity extends AppCompatActivity {
     private void abrirCamara() {
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         cameraLauncher.launch(intent);
+    }
+
+    private void abrirGaleria() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        galleryLauncher.launch(intent);
     }
 
     private boolean validarCampos() {
@@ -107,11 +152,16 @@ public class CrearReporteActivity extends AppCompatActivity {
             Toast.makeText(this, "Por favor ingrese su dirección", Toast.LENGTH_SHORT).show();
             return false;
         }
-        if (fotoCapturada == null) {
-            Toast.makeText(this, "Por favor tome una foto", Toast.LENGTH_SHORT).show();
+        if (fotos.isEmpty()) {
+            Toast.makeText(this, "Por favor agregue al menos una foto", Toast.LENGTH_SHORT).show();
             return false;
         }
         return true;
+    }
+
+    @Override
+    public void onEliminarClick(int position) {
+        fotosAdapter.eliminarFoto(position);
     }
 
     private void mostrarDialogoIdReporte(String idReporte) {
@@ -144,22 +194,24 @@ public class CrearReporteActivity extends AppCompatActivity {
         binding.etNombreContacto.setText("");
         binding.etTelefonoContacto.setText("");
         binding.etDireccionContacto.setText("");
-        binding.ivFoto.setImageBitmap(null);
-        fotoCapturada = null;
+        fotos.clear();
+        fotosAdapter.notifyDataSetChanged();
     }
 
     private void enviarReporte() {
-        // Convertir la foto a base64
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        fotoCapturada.compress(Bitmap.CompressFormat.JPEG, 100, baos);
-        byte[] imageBytes = baos.toByteArray();
-        String fotoBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT);
+        List<String> fotosBase64 = new ArrayList<>();
+        for (Bitmap foto : fotos) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            foto.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+            byte[] imageBytes = baos.toByteArray();
+            String fotoBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT);
+            fotosBase64.add(fotoBase64);
+        }
 
-        // Crear y guardar el reporte
         Reporte reporte = new Reporte(
             binding.etTitulo.getText().toString(),
             binding.etDescripcion.getText().toString(),
-            fotoBase64,
+            fotosBase64,
             binding.etNombreContacto.getText().toString(),
             binding.etTelefonoContacto.getText().toString(),
             binding.etDireccionContacto.getText().toString()

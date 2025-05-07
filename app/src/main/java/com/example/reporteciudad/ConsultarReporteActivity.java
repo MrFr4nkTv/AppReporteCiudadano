@@ -6,11 +6,14 @@ import android.os.Bundle;
 import android.util.Base64;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.reporteciudad.databinding.ActivityConsultarReporteBinding;
+import java.util.List;
 
 public class ConsultarReporteActivity extends AppCompatActivity {
     private ActivityConsultarReporteBinding binding;
     private ReporteManager reporteManager;
+    private FotosAdapter fotosAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,6 +28,7 @@ public class ConsultarReporteActivity extends AppCompatActivity {
         }
 
         reporteManager = new ReporteManager(this);
+        setupRecyclerView();
         setupButtons();
     }
 
@@ -32,6 +36,12 @@ public class ConsultarReporteActivity extends AppCompatActivity {
     public boolean onSupportNavigateUp() {
         onBackPressed();
         return true;
+    }
+
+    private void setupRecyclerView() {
+        fotosAdapter = new FotosAdapter(null, null);
+        binding.rvFotos.setAdapter(fotosAdapter);
+        binding.rvFotos.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
     }
 
     private void setupButtons() {
@@ -62,10 +72,15 @@ public class ConsultarReporteActivity extends AppCompatActivity {
         binding.tvTelefonoContacto.setText(reporte.getTelefonoContacto());
         binding.tvDireccionContacto.setText(reporte.getDireccionContacto());
 
-        // Convertir la foto de base64 a Bitmap
-        byte[] imageBytes = Base64.decode(reporte.getFotoBase64(), Base64.DEFAULT);
-        Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
-        binding.ivFoto.setImageBitmap(bitmap);
+        // Convertir las fotos de base64 a Bitmap
+        List<String> fotosBase64 = reporte.getFotosBase64();
+        if (fotosBase64 != null && !fotosBase64.isEmpty()) {
+            for (String fotoBase64 : fotosBase64) {
+                byte[] imageBytes = Base64.decode(fotoBase64, Base64.DEFAULT);
+                Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+                fotosAdapter.agregarFoto(bitmap);
+            }
+        }
     }
 
     private void limpiarCampos() {
@@ -74,6 +89,6 @@ public class ConsultarReporteActivity extends AppCompatActivity {
         binding.tvNombreContacto.setText("");
         binding.tvTelefonoContacto.setText("");
         binding.tvDireccionContacto.setText("");
-        binding.ivFoto.setImageBitmap(null);
+        fotosAdapter.eliminarTodasLasFotos();
     }
 } 
