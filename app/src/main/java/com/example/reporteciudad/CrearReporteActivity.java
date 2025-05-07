@@ -32,9 +32,21 @@ public class CrearReporteActivity extends AppCompatActivity {
         binding = ActivityCrearReporteBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        // Habilitar el botón de retroceso en la barra de acción
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Crear Reporte");
+        }
+
         reporteManager = new ReporteManager(this);
         setupCameraLauncher();
         setupButtons();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
     }
 
     private void setupCameraLauncher() {
@@ -83,6 +95,18 @@ public class CrearReporteActivity extends AppCompatActivity {
             Toast.makeText(this, "Por favor ingrese una descripción", Toast.LENGTH_SHORT).show();
             return false;
         }
+        if (binding.etNombreContacto.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Por favor ingrese su nombre", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (binding.etTelefonoContacto.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Por favor ingrese su teléfono", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (binding.etDireccionContacto.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Por favor ingrese su dirección", Toast.LENGTH_SHORT).show();
+            return false;
+        }
         if (fotoCapturada == null) {
             Toast.makeText(this, "Por favor tome una foto", Toast.LENGTH_SHORT).show();
             return false;
@@ -104,7 +128,11 @@ public class CrearReporteActivity extends AppCompatActivity {
         
         dialogBinding.btnAceptar.setOnClickListener(v -> {
             dialog.dismiss();
-            limpiarCampos();
+            // Regresar al menú principal
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
+            finish();
         });
         
         dialog.show();
@@ -113,6 +141,9 @@ public class CrearReporteActivity extends AppCompatActivity {
     private void limpiarCampos() {
         binding.etTitulo.setText("");
         binding.etDescripcion.setText("");
+        binding.etNombreContacto.setText("");
+        binding.etTelefonoContacto.setText("");
+        binding.etDireccionContacto.setText("");
         binding.ivFoto.setImageBitmap(null);
         fotoCapturada = null;
     }
@@ -128,7 +159,10 @@ public class CrearReporteActivity extends AppCompatActivity {
         Reporte reporte = new Reporte(
             binding.etTitulo.getText().toString(),
             binding.etDescripcion.getText().toString(),
-            fotoBase64
+            fotoBase64,
+            binding.etNombreContacto.getText().toString(),
+            binding.etTelefonoContacto.getText().toString(),
+            binding.etDireccionContacto.getText().toString()
         );
         
         reporteManager.guardarReporte(reporte);

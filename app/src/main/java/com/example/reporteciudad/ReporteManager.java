@@ -11,32 +11,21 @@ import java.util.List;
 public class ReporteManager {
     private static final String PREF_NAME = "ReportesPrefs";
     private static final String KEY_REPORTES = "reportes";
-    private SharedPreferences prefs;
+    private SharedPreferences sharedPreferences;
     private Gson gson;
 
     public ReporteManager(Context context) {
-        prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         gson = new Gson();
     }
 
     public void guardarReporte(Reporte reporte) {
         List<Reporte> reportes = obtenerReportes();
         reportes.add(reporte);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString(KEY_REPORTES, gson.toJson(reportes));
-        editor.apply();
+        guardarReportes(reportes);
     }
 
-    public List<Reporte> obtenerReportes() {
-        String json = prefs.getString(KEY_REPORTES, null);
-        if (json == null) {
-            return new ArrayList<>();
-        }
-        Type type = new TypeToken<List<Reporte>>(){}.getType();
-        return gson.fromJson(json, type);
-    }
-
-    public Reporte buscarReporte(String id) {
+    public Reporte obtenerReporte(String id) {
         List<Reporte> reportes = obtenerReportes();
         for (Reporte reporte : reportes) {
             if (reporte.getId().equals(id)) {
@@ -44,5 +33,19 @@ public class ReporteManager {
             }
         }
         return null;
+    }
+
+    private List<Reporte> obtenerReportes() {
+        String json = sharedPreferences.getString(KEY_REPORTES, null);
+        if (json == null) {
+            return new ArrayList<>();
+        }
+        Type type = new TypeToken<List<Reporte>>(){}.getType();
+        return gson.fromJson(json, type);
+    }
+
+    private void guardarReportes(List<Reporte> reportes) {
+        String json = gson.toJson(reportes);
+        sharedPreferences.edit().putString(KEY_REPORTES, json).apply();
     }
 } 
