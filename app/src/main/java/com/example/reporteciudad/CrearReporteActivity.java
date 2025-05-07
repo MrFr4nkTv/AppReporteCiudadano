@@ -7,13 +7,16 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.view.LayoutInflater;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.example.reporteciudad.databinding.ActivityCrearReporteBinding;
+import com.example.reporteciudad.databinding.DialogReporteIdBinding;
 import java.io.ByteArrayOutputStream;
 
 public class CrearReporteActivity extends AppCompatActivity {
@@ -87,6 +90,33 @@ public class CrearReporteActivity extends AppCompatActivity {
         return true;
     }
 
+    private void mostrarDialogoIdReporte(String idReporte) {
+        DialogReporteIdBinding dialogBinding = DialogReporteIdBinding.inflate(LayoutInflater.from(this));
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogBinding.getRoot());
+        
+        dialogBinding.tvIdReporte.setText("ID del Reporte: " + idReporte);
+        dialogBinding.tvMensaje.setText("Por favor, anote este ID para poder consultar su reporte posteriormente.");
+        
+        AlertDialog dialog = builder.create();
+        dialog.setCancelable(false);
+        
+        dialogBinding.btnAceptar.setOnClickListener(v -> {
+            dialog.dismiss();
+            limpiarCampos();
+        });
+        
+        dialog.show();
+    }
+
+    private void limpiarCampos() {
+        binding.etTitulo.setText("");
+        binding.etDescripcion.setText("");
+        binding.ivFoto.setImageBitmap(null);
+        fotoCapturada = null;
+    }
+
     private void enviarReporte() {
         // Convertir la foto a base64
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -103,14 +133,7 @@ public class CrearReporteActivity extends AppCompatActivity {
         
         reporteManager.guardarReporte(reporte);
 
-        // Mostrar el ID del reporte
-        String mensaje = "Reporte guardado correctamente\nID del reporte: " + reporte.getId();
-        Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show();
-        
-        // Limpiar campos
-        binding.etTitulo.setText("");
-        binding.etDescripcion.setText("");
-        binding.ivFoto.setImageBitmap(null);
-        fotoCapturada = null;
+        // Mostrar el diálogo con el ID del reporte
+        mostrarDialogoIdReporte(reporte.getId());
     }
 } 
