@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
@@ -29,6 +30,7 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     private static final int REQUEST_GALLERY_PERMISSION = 101;
     private ActivityResultLauncher<Intent> cameraLauncher;
     private ActivityResultLauncher<Intent> galleryLauncher;
+    private ActivityResultLauncher<String> requestPermissionLauncher;
     private List<Bitmap> fotos;
     private FotosAdapter fotosAdapter;
     private ReporteManager reporteManager;
@@ -64,6 +66,17 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     }
 
     private void setupLaunchers() {
+        requestPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            isGranted -> {
+                if (isGranted) {
+                    abrirGaleria();
+                } else {
+                    Toast.makeText(this, "Se necesita permiso para acceder a la galería", Toast.LENGTH_SHORT).show();
+                }
+            }
+        );
+
         cameraLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -104,13 +117,20 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
         });
 
         binding.btnSeleccionarFoto.setOnClickListener(v -> {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                        REQUEST_GALLERY_PERMISSION);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES);
+                } else {
+                    abrirGaleria();
+                }
             } else {
-                abrirGaleria();
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
+                } else {
+                    abrirGaleria();
+                }
             }
         });
 
