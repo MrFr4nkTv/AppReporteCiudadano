@@ -30,6 +30,7 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import com.example.reporteciudad.api.ReporteService;
 import com.example.reporteciudad.api.ReporteRequest;
+import com.example.reporteciudad.api.ImgurUploader;
 
 public class CrearReporteActivity extends AppCompatActivity implements FotosAdapter.OnFotoClickListener {
     private ActivityCrearReporteBinding binding;
@@ -240,51 +241,66 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
         binding.btnEnviarReporte.setEnabled(false);
         binding.btnEnviarReporte.setText("Enviando...");
 
-        List<String> fotosBase64 = new ArrayList<>();
-        for (Bitmap foto : fotos) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            foto.compress(Bitmap.CompressFormat.JPEG, 100, baos);
-            byte[] imageBytes = baos.toByteArray();
-            String fotoBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT);
-            fotosBase64.add(fotoBase64);
-        }
-
-        ReporteRequest reporteRequest = new ReporteRequest(
-            binding.etTitulo.getText().toString(),
-            binding.etDescripcion.getText().toString(),
-            fotosBase64,
-            binding.etNombreContacto.getText().toString(),
-            binding.etTelefonoContacto.getText().toString(),
-            binding.etDireccionContacto.getText().toString()
-        );
-
-        reporteService.enviarReporte(reporteRequest).enqueue(new Callback<Void>() {
-            @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
-                String mensaje;
-                if (response.isSuccessful()) {
-                    mensaje = "Reporte enviado exitosamente";
-                    mostrarDialogoIdReporte("REP-" + System.currentTimeMillis());
-                    limpiarCampos();
-                } else {
-                    mensaje = "Error al enviar el reporte. Código: " + response.code();
+        // Subir imágenes a Imgur en un hilo separado
+        new Thread(() -> {
+            try {
+                ImgurUploader imgurUploader = new ImgurUploader();
+                List<String> imageLinks = new ArrayList<>();
+                
+                for (Bitmap foto : fotos) {
+                    String imageLink = imgurUploader.uploadImage(foto);
+                    imageLinks.add(imageLink);
                 }
-                runOnUiThread(() -> {
-                    Toast.makeText(CrearReporteActivity.this, mensaje, Toast.LENGTH_LONG).show();
-                    binding.btnEnviarReporte.setEnabled(true);
-                    binding.btnEnviarReporte.setText("Enviar Reporte");
-                });
-            }
 
-            @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-                String mensaje = "Error de conexión: " + t.getMessage();
+                // Crear y enviar el reporte con los enlaces de las imágenes
+                ReporteRequest reporteRequest = new ReporteRequest(
+                    binding.etTitulo.getText().toString(),
+                    binding.etDescripcion.getText().toString(),
+                    imageLinks,
+                    binding.etNombreContacto.getText().toString(),
+                    binding.etTelefonoContacto.getText().toString(),
+                    binding.etDireccionContacto.getText().toString()
+                );
+
                 runOnUiThread(() -> {
-                    Toast.makeText(CrearReporteActivity.this, mensaje, Toast.LENGTH_LONG).show();
+                    reporteService.enviarReporte(reporteRequest).enqueue(new Callback<Void>() {
+                        @Override
+                        public void onResponse(Call<Void> call, Response<Void> response) {
+                            String mensaje;
+                            if (response.isSuccessful()) {
+                                mensaje = "Reporte enviado exitosamente";
+                                mostrarDialogoIdReporte(reporteRequest.getId());
+                                limpiarCampos();
+                            } else {
+                                mensaje = "Error al enviar el reporte. Código: " + response.code();
+                            }
+                            runOnUiThread(() -> {
+                                Toast.makeText(CrearReporteActivity.this, mensaje, Toast.LENGTH_LONG).show();
+                                binding.btnEnviarReporte.setEnabled(true);
+                                binding.btnEnviarReporte.setText("Enviar Reporte");
+                            });
+                        }
+
+                        @Override
+                        public void onFailure(Call<Void> call, Throwable t) {
+                            String mensaje = "Error de conexión: " + t.getMessage();
+                            runOnUiThread(() -> {
+                                Toast.makeText(CrearReporteActivity.this, mensaje, Toast.LENGTH_LONG).show();
+                                binding.btnEnviarReporte.setEnabled(true);
+                                binding.btnEnviarReporte.setText("Enviar Reporte");
+                            });
+                        }
+                    });
+                });
+            } catch (IOException e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(CrearReporteActivity.this, 
+                        "Error al subir las imágenes: " + e.getMessage(), 
+                        Toast.LENGTH_LONG).show();
                     binding.btnEnviarReporte.setEnabled(true);
                     binding.btnEnviarReporte.setText("Enviar Reporte");
                 });
             }
-        });
+        }).start();
     }
 } 
