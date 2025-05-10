@@ -12,14 +12,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+    android:padding="16dp">
 
-        <TextView
+    <TextView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+        android:layout_height="wrap_content"
             android:text="Reportar un Problema"
-            android:textSize="24sp"
-            android:textStyle="bold"
+        android:textSize="24sp"
+        android:textStyle="bold"
             android:gravity="center"
             android:layout_marginBottom="24dp"/>
 
@@ -161,21 +161,21 @@
 
         <Button
             android:id="@+id/btnAgregarImagen"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
             android:text="Agregar Imagen"
             android:layout_marginBottom="16dp"/>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvImagenes"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"/>
 
         <Button
             android:id="@+id/btnEnviarReporte"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
             android:text="Enviar Reporte"/>
 
     </LinearLayout>
