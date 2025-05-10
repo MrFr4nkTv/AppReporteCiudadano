@@ -221,10 +221,10 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     private void enviarReporte() {
         List<String> fotosBase64 = new ArrayList<>();
         for (Bitmap foto : fotos) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
             foto.compress(Bitmap.CompressFormat.JPEG, 100, baos);
-            byte[] imageBytes = baos.toByteArray();
-            String fotoBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT);
+        byte[] imageBytes = baos.toByteArray();
+        String fotoBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT);
             fotosBase64.add(fotoBase64);
         }
 
