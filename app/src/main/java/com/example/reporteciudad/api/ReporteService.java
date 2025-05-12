@@ -6,5 +6,5 @@ import retrofit2.http.POST;
 
 public interface ReporteService {
     @POST("exec")
-    Call<Void> enviarReporte(@Body ReporteRequest reporte);
+    Call<ReporteResponse> enviarReporte(@Body ReporteRequest reporte);
 } 

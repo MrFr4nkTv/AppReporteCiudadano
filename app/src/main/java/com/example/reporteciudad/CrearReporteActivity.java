@@ -20,9 +20,15 @@ import androidx.core.content.ContextCompat;
 import com.example.reporteciudad.databinding.ActivityCrearReporteBinding;
 import com.example.reporteciudad.databinding.DialogReporteIdBinding;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import android.os.Environment;
+import androidx.core.content.FileProvider;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -31,6 +37,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import com.example.reporteciudad.api.ReporteService;
 import com.example.reporteciudad.api.ReporteRequest;
 import com.example.reporteciudad.api.ImgurUploader;
+import com.example.reporteciudad.api.ReporteResponse;
 
 public class CrearReporteActivity extends AppCompatActivity implements FotosAdapter.OnFotoClickListener {
     private ActivityCrearReporteBinding binding;
@@ -45,6 +52,8 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     private ReporteService reporteService;
     // Reemplaza esta URL con la que obtengas después de desplegar el script
     private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzkWDtTvdSn61rNKROflTXRm5fMAkm2mpoKe6xcEk5ullHGj4wleX5YIxyZyLAAnDiA/exec/";
+    private Uri photoURI;
+    private static final int REQUEST_IMAGE_CAPTURE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,10 +107,13 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
         cameraLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Bundle extras = result.getData().getExtras();
-                    Bitmap foto = (Bitmap) extras.get("data");
-                    fotosAdapter.agregarFoto(foto);
+                if (result.getResultCode() == RESULT_OK) {
+                    try {
+                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), photoURI);
+                        fotosAdapter.agregarFoto(bitmap);
+                    } catch (IOException e) {
+                        Toast.makeText(this, "Error al cargar la imagen", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         );
@@ -160,8 +172,36 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     }
 
     private void abrirCamara() {
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        cameraLauncher.launch(intent);
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                Toast.makeText(this, "Error al crear el archivo de imagen", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (photoFile != null) {
+                photoURI = FileProvider.getUriForFile(this,
+                        "com.example.reporteciudad.fileprovider",
+                        photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                cameraLauncher.launch(takePictureIntent);
+            }
+        }
+    }
+
+    private File createImageFile() throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+            imageFileName,
+            ".jpg",
+            storageDir
+        );
+        return image;
     }
 
     private void abrirGaleria() {
@@ -263,11 +303,12 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
                 );
 
                 runOnUiThread(() -> {
-                    reporteService.enviarReporte(reporteRequest).enqueue(new Callback<Void>() {
+                    reporteService.enviarReporte(reporteRequest).enqueue(new Callback<ReporteResponse>() {
                         @Override
-                        public void onResponse(Call<Void> call, Response<Void> response) {
+                        public void onResponse(Call<ReporteResponse> call, Response<ReporteResponse> response) {
                             String mensaje;
-                            if (response.isSuccessful()) {
+                            if (response.isSuccessful() && response.body() != null) {
+                                ReporteResponse reporteResponse = response.body();
                                 mensaje = "Reporte enviado exitosamente";
                                 mostrarDialogoIdReporte(reporteRequest.getId());
                                 limpiarCampos();
@@ -282,7 +323,7 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
                         }
 
                         @Override
-                        public void onFailure(Call<Void> call, Throwable t) {
+                        public void onFailure(Call<ReporteResponse> call, Throwable t) {
                             String mensaje = "Error de conexión: " + t.getMessage();
                             runOnUiThread(() -> {
                                 Toast.makeText(CrearReporteActivity.this, mensaje, Toast.LENGTH_LONG).show();

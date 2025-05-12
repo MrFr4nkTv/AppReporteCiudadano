@@ -22,8 +22,17 @@ public class ImgurUploader {
     }
 
     public String uploadImage(Bitmap bitmap) throws IOException {
+        // Escalar la imagen si es demasiado grande
+        Bitmap resizedBitmap = resizeImageIfNeeded(bitmap, 2048); // Máximo 2048px (mantiene buena calidad)
+        
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        // Usar calidad alta (95) en lugar de 100 para reducir un poco el tamaño sin perder mucha calidad
+        resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 95, baos);
+        
+        if (resizedBitmap != bitmap) {
+            resizedBitmap.recycle(); // Liberar memoria si creamos un nuevo bitmap
+        }
+        
         byte[] imageBytes = baos.toByteArray();
         String base64Image = Base64.encodeToString(imageBytes, Base64.DEFAULT);
 
@@ -50,5 +59,29 @@ public class ImgurUploader {
         } catch (Exception e) {
             throw new IOException("Error al procesar la respuesta: " + e.getMessage());
         }
+    }
+    
+    // Método para redimensionar la imagen si es demasiado grande, manteniendo la relación de aspecto
+    private Bitmap resizeImageIfNeeded(Bitmap image, int maxDimension) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        
+        // Si la imagen ya es lo suficientemente pequeña, no la redimensionamos
+        if (width <= maxDimension && height <= maxDimension) {
+            return image;
+        }
+        
+        float bitmapRatio = (float) width / (float) height;
+        if (bitmapRatio > 1) {
+            // El ancho es mayor
+            width = maxDimension;
+            height = (int) (width / bitmapRatio);
+        } else {
+            // El alto es mayor o son iguales
+            height = maxDimension;
+            width = (int) (height * bitmapRatio);
+        }
+        
+        return Bitmap.createScaledBitmap(image, width, height, true);
     }
 } 

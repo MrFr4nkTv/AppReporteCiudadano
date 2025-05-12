@@ -38,6 +38,16 @@
         <activity android:name=".ConsultarReporteActivity" />
         <activity android:name=".ContactoActivity" />
 
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.example.reporteciudad.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 
 </manifest>
