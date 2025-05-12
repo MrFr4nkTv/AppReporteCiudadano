@@ -38,6 +38,7 @@ import com.example.reporteciudad.api.ReporteService;
 import com.example.reporteciudad.api.ReporteRequest;
 import com.example.reporteciudad.api.ImgurUploader;
 import com.example.reporteciudad.api.ReporteResponse;
+import android.util.Log;
 
 public class CrearReporteActivity extends AppCompatActivity implements FotosAdapter.OnFotoClickListener {
     private ActivityCrearReporteBinding binding;
@@ -301,6 +302,9 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
                     binding.etTelefonoContacto.getText().toString(),
                     binding.etDireccionContacto.getText().toString()
                 );
+                
+                // Log para verificar que el ID se generó correctamente
+                Log.d("ReporteCiudad", "ID del reporte generado: " + reporteRequest.getId());
 
                 runOnUiThread(() -> {
                     reporteService.enviarReporte(reporteRequest).enqueue(new Callback<ReporteResponse>() {
@@ -310,10 +314,20 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
                             if (response.isSuccessful() && response.body() != null) {
                                 ReporteResponse reporteResponse = response.body();
                                 mensaje = "Reporte enviado exitosamente";
+                                // Log para verificar la respuesta
+                                Log.d("ReporteCiudad", "Respuesta del servidor: result=" + reporteResponse.getResult() + ", message=" + reporteResponse.getMessage());
                                 mostrarDialogoIdReporte(reporteRequest.getId());
                                 limpiarCampos();
                             } else {
                                 mensaje = "Error al enviar el reporte. Código: " + response.code();
+                                Log.e("ReporteCiudad", "Error en la respuesta: " + response.code() + " " + response.message());
+                                try {
+                                    if (response.errorBody() != null) {
+                                        Log.e("ReporteCiudad", "Error body: " + response.errorBody().string());
+                                    }
+                                } catch (IOException e) {
+                                    Log.e("ReporteCiudad", "Error al leer error body", e);
+                                }
                             }
                             runOnUiThread(() -> {
                                 Toast.makeText(CrearReporteActivity.this, mensaje, Toast.LENGTH_LONG).show();
@@ -325,6 +339,7 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
                         @Override
                         public void onFailure(Call<ReporteResponse> call, Throwable t) {
                             String mensaje = "Error de conexión: " + t.getMessage();
+                            Log.e("ReporteCiudad", "Error de conexión", t);
                             runOnUiThread(() -> {
                                 Toast.makeText(CrearReporteActivity.this, mensaje, Toast.LENGTH_LONG).show();
                                 binding.btnEnviarReporte.setEnabled(true);
@@ -334,6 +349,7 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
                     });
                 });
             } catch (IOException e) {
+                Log.e("ReporteCiudad", "Error al subir imágenes", e);
                 runOnUiThread(() -> {
                     Toast.makeText(CrearReporteActivity.this, 
                         "Error al subir las imágenes: " + e.getMessage(), 

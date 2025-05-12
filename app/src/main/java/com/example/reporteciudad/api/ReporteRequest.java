@@ -1,14 +1,22 @@
 package com.example.reporteciudad.api;
 
+import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
 public class ReporteRequest {
+    @SerializedName("id")
     private String id;
+    @SerializedName("titulo")
     private String titulo;
+    @SerializedName("descripcion")
     private String descripcion;
+    @SerializedName("fotos")
     private List<String> fotos;
+    @SerializedName("nombreContacto")
     private String nombreContacto;
+    @SerializedName("telefonoContacto")
     private String telefonoContacto;
+    @SerializedName("direccionContacto")
     private String direccionContacto;
 
     public ReporteRequest(String titulo, String descripcion, List<String> fotos,
