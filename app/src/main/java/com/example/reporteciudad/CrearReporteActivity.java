@@ -29,16 +29,15 @@ import java.util.List;
 import java.util.Locale;
 import android.os.Environment;
 import androidx.core.content.FileProvider;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
-import com.example.reporteciudad.api.ReporteService;
 import com.example.reporteciudad.api.ReporteRequest;
 import com.example.reporteciudad.api.ImgurUploader;
-import com.example.reporteciudad.api.ReporteResponse;
 import android.util.Log;
+import java.net.HttpURLConnection;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import org.json.JSONObject;
+import org.json.JSONException;
 
 public class CrearReporteActivity extends AppCompatActivity implements FotosAdapter.OnFotoClickListener {
     private ActivityCrearReporteBinding binding;
@@ -50,11 +49,11 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     private List<Bitmap> fotos;
     private FotosAdapter fotosAdapter;
     private ReporteManager reporteManager;
-    private ReporteService reporteService;
-    // Reemplaza esta URL con la que obtengas después de desplegar el script
-    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzkWDtTvdSn61rNKROflTXRm5fMAkm2mpoKe6xcEk5ullHGj4wleX5YIxyZyLAAnDiA/exec/";
+    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxn8CPKL_b4roQ-9GyanMkzPdtZyGCfmCVgABqlMs4u0TJlnX1MVvrvgxe6B8IVUYib6g/exec";
     private Uri photoURI;
     private static final int REQUEST_IMAGE_CAPTURE = 1;
+    private static final int TIMEOUT_MS = 30000; // Aumentado a 30 segundos
+    private static final int MAX_RETRIES = 3; // Número máximo de reintentos
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,13 +72,6 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
         setupRecyclerView();
         setupLaunchers();
         setupButtons();
-
-        // Configurar Retrofit
-        Retrofit retrofit = new Retrofit.Builder()
-            .baseUrl(GOOGLE_SHEETS_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build();
-        reporteService = retrofit.create(ReporteService.class);
     }
 
     @Override
@@ -293,7 +285,7 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
                     imageLinks.add(imageLink);
                 }
 
-                // Crear y enviar el reporte con los enlaces de las imágenes
+                // Crear el objeto ReporteRequest con el nuevo código de reporte
                 ReporteRequest reporteRequest = new ReporteRequest(
                     binding.etTitulo.getText().toString(),
                     binding.etDescripcion.getText().toString(),
@@ -303,51 +295,123 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
                     binding.etDireccionContacto.getText().toString()
                 );
                 
-                // Log para verificar que el ID se generó correctamente
-                Log.d("ReporteCiudad", "ID del reporte generado: " + reporteRequest.getId());
+                // Obtener el código único generado
+                final String codigoReporte = reporteRequest.getCodigoReporte();
+                Log.d("ReporteCiudad", "Código de reporte generado: " + codigoReporte);
+                
+                // Construir URL con parámetros
+                StringBuilder urlBuilder = new StringBuilder(GOOGLE_SHEETS_URL);
+                urlBuilder.append("?codigo_reporte=").append(Uri.encode(codigoReporte));
+                urlBuilder.append("&titulo=").append(Uri.encode(reporteRequest.getTitulo()));
+                urlBuilder.append("&descripcion=").append(Uri.encode(reporteRequest.getDescripcion()));
+                urlBuilder.append("&nombreContacto=").append(Uri.encode(reporteRequest.getNombreContacto()));
+                urlBuilder.append("&telefonoContacto=").append(Uri.encode(reporteRequest.getTelefonoContacto()));
+                urlBuilder.append("&direccionContacto=").append(Uri.encode(reporteRequest.getDireccionContacto()));
+                
+                // Concatenar fotos
+                StringBuilder fotosStr = new StringBuilder();
+                for (int i = 0; i < reporteRequest.getFotos().size(); i++) {
+                    fotosStr.append(reporteRequest.getFotos().get(i));
+                    if (i < reporteRequest.getFotos().size() - 1) {
+                        fotosStr.append(",");
+                    }
+                }
+                urlBuilder.append("&fotos=").append(Uri.encode(fotosStr.toString()));
+                
+                String finalUrl = urlBuilder.toString();
+                Log.d("ReporteCiudad", "URL: " + finalUrl);
 
-                runOnUiThread(() -> {
-                    reporteService.enviarReporte(reporteRequest).enqueue(new Callback<ReporteResponse>() {
-                        @Override
-                        public void onResponse(Call<ReporteResponse> call, Response<ReporteResponse> response) {
-                            String mensaje;
-                            if (response.isSuccessful() && response.body() != null) {
-                                ReporteResponse reporteResponse = response.body();
-                                mensaje = "Reporte enviado exitosamente";
-                                // Log para verificar la respuesta
-                                Log.d("ReporteCiudad", "Respuesta del servidor: result=" + reporteResponse.getResult() + ", message=" + reporteResponse.getMessage());
-                                mostrarDialogoIdReporte(reporteRequest.getId());
-                                limpiarCampos();
+                // Intentar enviar el reporte con reintentos
+                int retryCount = 0;
+                boolean success = false;
+                Exception lastException = null;
+
+                while (retryCount < MAX_RETRIES && !success) {
+                    try {
+                        if (retryCount > 0) {
+                            Log.d("ReporteCiudad", "Reintentando envío (intento " + (retryCount + 1) + " de " + MAX_RETRIES + ")");
+                            Thread.sleep(1000); // Esperar 1 segundo entre reintentos
+                        }
+
+                        URL url = new URL(finalUrl);
+                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                        connection.setRequestMethod("GET");
+                        connection.setConnectTimeout(TIMEOUT_MS);
+                        connection.setReadTimeout(TIMEOUT_MS);
+                        connection.setDoInput(true);
+                        
+                        try {
+                            int responseCode = connection.getResponseCode();
+                            Log.d("ReporteCiudad", "Código de respuesta: " + responseCode);
+                            
+                            BufferedReader in;
+                            if (responseCode >= 200 && responseCode < 300) {
+                                in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                             } else {
-                                mensaje = "Error al enviar el reporte. Código: " + response.code();
-                                Log.e("ReporteCiudad", "Error en la respuesta: " + response.code() + " " + response.message());
-                                try {
-                                    if (response.errorBody() != null) {
-                                        Log.e("ReporteCiudad", "Error body: " + response.errorBody().string());
-                                    }
-                                } catch (IOException e) {
-                                    Log.e("ReporteCiudad", "Error al leer error body", e);
-                                }
+                                in = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
                             }
+                            
+                            String inputLine;
+                            StringBuilder response = new StringBuilder();
+                            
+                            while ((inputLine = in.readLine()) != null) {
+                                response.append(inputLine);
+                            }
+                            in.close();
+                            
+                            String responseString = response.toString();
+                            Log.d("ReporteCiudad", "Respuesta: " + responseString);
+                            
+                            final int finalResponseCode = responseCode;
+                            final String finalResponse = responseString;
+                            
                             runOnUiThread(() -> {
-                                Toast.makeText(CrearReporteActivity.this, mensaje, Toast.LENGTH_LONG).show();
+                                if (finalResponseCode >= 200 && finalResponseCode < 300) {
+                                    Toast.makeText(CrearReporteActivity.this, 
+                                        "Reporte enviado correctamente", 
+                                        Toast.LENGTH_SHORT).show();
+                                    mostrarDialogoIdReporte(codigoReporte);
+                                    limpiarCampos();
+                                } else {
+                                    String mensajeError = "Error al enviar reporte";
+                                    try {
+                                        JSONObject jsonError = new JSONObject(finalResponse);
+                                        if (jsonError.has("message")) {
+                                            mensajeError += ": " + jsonError.getString("message");
+                                        }
+                                    } catch (JSONException e) {
+                                        mensajeError += " (Código: " + finalResponseCode + ")";
+                                    }
+                                    Toast.makeText(CrearReporteActivity.this, 
+                                        mensajeError, 
+                                        Toast.LENGTH_LONG).show();
+                                    Log.e("ReporteCiudad", "Error HTTP: " + finalResponseCode + " - " + finalResponse);
+                                }
                                 binding.btnEnviarReporte.setEnabled(true);
                                 binding.btnEnviarReporte.setText("Enviar Reporte");
                             });
+                            
+                            success = true;
+                        } finally {
+                            connection.disconnect();
                         }
+                    } catch (Exception e) {
+                        lastException = e;
+                        Log.e("ReporteCiudad", "Error en intento " + (retryCount + 1) + ": " + e.getMessage());
+                        retryCount++;
+                    }
+                }
 
-                        @Override
-                        public void onFailure(Call<ReporteResponse> call, Throwable t) {
-                            String mensaje = "Error de conexión: " + t.getMessage();
-                            Log.e("ReporteCiudad", "Error de conexión", t);
-                            runOnUiThread(() -> {
-                                Toast.makeText(CrearReporteActivity.this, mensaje, Toast.LENGTH_LONG).show();
-                                binding.btnEnviarReporte.setEnabled(true);
-                                binding.btnEnviarReporte.setText("Enviar Reporte");
-                            });
-                        }
+                if (!success) {
+                    final Exception finalException = lastException;
+                    runOnUiThread(() -> {
+                        Toast.makeText(CrearReporteActivity.this, 
+                            "Error al enviar reporte después de " + MAX_RETRIES + " intentos: " + finalException.getMessage(), 
+                            Toast.LENGTH_LONG).show();
+                        binding.btnEnviarReporte.setEnabled(true);
+                        binding.btnEnviarReporte.setText("Enviar Reporte");
                     });
-                });
+                }
             } catch (IOException e) {
                 Log.e("ReporteCiudad", "Error al subir imágenes", e);
                 runOnUiThread(() -> {
