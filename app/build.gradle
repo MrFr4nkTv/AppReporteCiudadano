@@ -32,31 +32,37 @@ android {
 }
 
 dependencies {
+    // AndroidX Core
     implementation libs.appcompat
     implementation libs.material
     implementation libs.constraintlayout
-    implementation libs.retrofit
-    implementation libs.converter.gson
+    
+    // Networking
     implementation libs.okhttp
     implementation libs.logging.interceptor
+    
+    // Glide para manejo de imágenes
     implementation libs.glide
+    
+    // CameraX
     implementation libs.androidx.camera.core
     implementation libs.androidx.camera.camera2
     implementation libs.androidx.camera.lifecycle
     implementation libs.androidx.camera.view
+    
+    // AndroidX Components
     implementation libs.androidx.activity
     implementation libs.androidx.fragment
     implementation libs.androidx.lifecycle.viewmodel
     implementation libs.androidx.lifecycle.livedata
     implementation libs.androidx.navigation.fragment
     implementation libs.androidx.navigation.ui
-    implementation libs.androidx.room.runtime
-    implementation 'com.google.code.gson:gson:2.10.1'
-    annotationProcessor libs.androidx.room.compiler
-    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
-    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
-    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
     
+    // Room Database
+    implementation libs.androidx.room.runtime
+    annotationProcessor libs.androidx.room.compiler
+    
+    // Testing
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

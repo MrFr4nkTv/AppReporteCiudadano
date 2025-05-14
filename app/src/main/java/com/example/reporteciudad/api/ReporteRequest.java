@@ -1,27 +1,45 @@
 package com.example.reporteciudad.api;
 
+import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
+import java.util.Random;
 
 public class ReporteRequest {
-    @SerializedName("id")
-    private String id;
+    private static final String CARACTERES_CODIGO = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int LONGITUD_CODIGO = 6;
+
+    @Expose
+    @SerializedName("codigo_reporte")
+    private final String codigoReporte;
+    
+    @Expose
     @SerializedName("titulo")
-    private String titulo;
+    private final String titulo;
+    
+    @Expose
     @SerializedName("descripcion")
-    private String descripcion;
+    private final String descripcion;
+    
+    @Expose
     @SerializedName("fotos")
-    private List<String> fotos;
+    private final List<String> fotos;
+    
+    @Expose
     @SerializedName("nombreContacto")
-    private String nombreContacto;
+    private final String nombreContacto;
+    
+    @Expose
     @SerializedName("telefonoContacto")
-    private String telefonoContacto;
+    private final String telefonoContacto;
+    
+    @Expose
     @SerializedName("direccionContacto")
-    private String direccionContacto;
+    private final String direccionContacto;
 
     public ReporteRequest(String titulo, String descripcion, List<String> fotos,
                          String nombreContacto, String telefonoContacto, String direccionContacto) {
-        this.id = "REP-" + System.currentTimeMillis();
+        this.codigoReporte = generarCodigoReporte();
         this.titulo = titulo;
         this.descripcion = descripcion;
         this.fotos = fotos;
@@ -30,8 +48,19 @@ public class ReporteRequest {
         this.direccionContacto = direccionContacto;
     }
 
+    private String generarCodigoReporte() {
+        StringBuilder codigo = new StringBuilder(LONGITUD_CODIGO);
+        Random random = new Random();
+        
+        for (int i = 0; i < LONGITUD_CODIGO; i++) {
+            codigo.append(CARACTERES_CODIGO.charAt(random.nextInt(CARACTERES_CODIGO.length())));
+        }
+        
+        return codigo.toString();
+    }
+    
     // Getters
-    public String getId() { return id; }
+    public String getCodigoReporte() { return codigoReporte; }
     public String getTitulo() { return titulo; }
     public String getDescripcion() { return descripcion; }
     public List<String> getFotos() { return fotos; }

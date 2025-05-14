@@ -23,44 +23,73 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Actividad para reportar problemas o sugerencias sobre la aplicación
+ * Permite enviar reportes con imágenes y detalles del sistema
+ */
 public class ContactoActivity extends AppCompatActivity implements FotosAdapter.OnFotoClickListener {
+    // Binding para acceder a las vistas
     private ActivityContactoBinding binding;
+    // Constante para el permiso de galería
     private static final int REQUEST_GALLERY_PERMISSION = 101;
+    // Launchers para manejar permisos y galería
     private ActivityResultLauncher<Intent> galleryLauncher;
     private ActivityResultLauncher<String> requestPermissionLauncher;
+    // Lista de fotos y adaptador para mostrarlas
     private List<Bitmap> fotos;
     private FotosAdapter fotosAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Inicializamos el ViewBinding
         binding = ActivityContactoBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Habilitar el botón de retroceso en la barra de acción
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Reportar Problema");
-        }
-
-        // Inicializar lista de fotos y adapter
-        fotos = new ArrayList<>();
+        // Configuramos la barra de acción
+        setupActionBar();
+        // Inicializamos los componentes
+        initializeComponents();
+        // Configuramos los componentes de la UI
         setupRecyclerView();
         setupTipoProblema();
         setupLaunchers();
         setupButtons();
-
-        // Auto-rellenar información del sistema
+        // Obtenemos información del sistema
         autoRellenarInformacionSistema();
     }
 
+    /**
+     * Configura la barra de acción con el botón de retroceso
+     */
+    private void setupActionBar() {
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Reportar Problema");
+        }
+    }
+
+    /**
+     * Inicializa los componentes básicos
+     */
+    private void initializeComponents() {
+        fotos = new ArrayList<>();
+    }
+
+    /**
+     * Configura el RecyclerView para mostrar las imágenes
+     */
     private void setupRecyclerView() {
         fotosAdapter = new FotosAdapter(fotos, this);
         binding.rvImagenes.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         binding.rvImagenes.setAdapter(fotosAdapter);
     }
 
+    /**
+     * Configura el AutoCompleteTextView con los tipos de problema
+     */
     private void setupTipoProblema() {
+        // Lista de tipos de problemas predefinidos
         String[] tiposProblema = {
             "Error de la aplicación",
             "Sugerencia de mejora",
@@ -69,6 +98,7 @@ public class ContactoActivity extends AppCompatActivity implements FotosAdapter.
             "Otro"
         };
 
+        // Creamos el adaptador para el AutoCompleteTextView
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
             this,
             android.R.layout.simple_dropdown_item_1line,
@@ -78,7 +108,11 @@ public class ContactoActivity extends AppCompatActivity implements FotosAdapter.
         binding.actvTipoProblema.setAdapter(adapter);
     }
 
+    /**
+     * Configura los launchers para permisos y galería
+     */
     private void setupLaunchers() {
+        // Launcher para solicitar permisos de galería
         requestPermissionLauncher = registerForActivityResult(
             new ActivityResultContracts.RequestPermission(),
             isGranted -> {
@@ -90,12 +124,14 @@ public class ContactoActivity extends AppCompatActivity implements FotosAdapter.
             }
         );
 
+        // Launcher para manejar el resultado de la galería
         galleryLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Uri selectedImage = result.getData().getData();
                     try {
+                        // Obtenemos la imagen seleccionada y la agregamos al adaptador
                         Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImage);
                         fotosAdapter.agregarFoto(bitmap);
                     } catch (IOException e) {
@@ -106,9 +142,14 @@ public class ContactoActivity extends AppCompatActivity implements FotosAdapter.
         );
     }
 
+    /**
+     * Configura los botones y sus listeners
+     */
     private void setupButtons() {
+        // Botón para agregar imágenes
         binding.btnAgregarImagen.setOnClickListener(v -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Para Android 13 y superior, usamos el permiso READ_MEDIA_IMAGES
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
                         != PackageManager.PERMISSION_GRANTED) {
                     requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES);
@@ -116,6 +157,7 @@ public class ContactoActivity extends AppCompatActivity implements FotosAdapter.
                     abrirGaleria();
                 }
             } else {
+                // Para versiones anteriores, usamos READ_EXTERNAL_STORAGE
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
                         != PackageManager.PERMISSION_GRANTED) {
                     requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
@@ -125,6 +167,7 @@ public class ContactoActivity extends AppCompatActivity implements FotosAdapter.
             }
         });
 
+        // Botón para enviar el reporte
         binding.btnEnviarReporte.setOnClickListener(v -> {
             if (validarCampos()) {
                 mostrarDialogoAgradecimiento();
@@ -132,11 +175,17 @@ public class ContactoActivity extends AppCompatActivity implements FotosAdapter.
         });
     }
 
+    /**
+     * Abre la galería para seleccionar una imagen
+     */
     private void abrirGaleria() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         galleryLauncher.launch(intent);
     }
 
+    /**
+     * Valida que todos los campos requeridos estén llenos
+     */
     private boolean validarCampos() {
         if (binding.etNombre.getText().toString().isEmpty()) {
             Toast.makeText(this, "Por favor ingrese su nombre", Toast.LENGTH_SHORT).show();
@@ -157,6 +206,9 @@ public class ContactoActivity extends AppCompatActivity implements FotosAdapter.
         return true;
     }
 
+    /**
+     * Muestra un diálogo de agradecimiento al enviar el reporte
+     */
     private void mostrarDialogoAgradecimiento() {
         DialogAgradecimientoBinding dialogBinding = DialogAgradecimientoBinding.inflate(getLayoutInflater());
         
@@ -176,26 +228,31 @@ public class ContactoActivity extends AppCompatActivity implements FotosAdapter.
 
     @Override
     public boolean onSupportNavigateUp() {
+        // Manejamos el botón de retroceso en la barra de acción
         onBackPressed();
         return true;
     }
 
     @Override
     public void onEliminarClick(int position) {
+        // Eliminamos la foto seleccionada del adaptador
         fotosAdapter.eliminarFoto(position);
     }
 
+    /**
+     * Obtiene y muestra información del sistema automáticamente
+     */
     private void autoRellenarInformacionSistema() {
         try {
-            // Versión de la App
+            // Obtenemos la versión de la aplicación
             String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
             binding.etVersionApp.setText(versionName);
 
-            // Dispositivo
+            // Obtenemos información del dispositivo
             String dispositivo = android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL;
             binding.etDispositivo.setText(dispositivo);
 
-            // Versión de Android
+            // Obtenemos la versión de Android
             String versionAndroid = "Android " + android.os.Build.VERSION.RELEASE;
             binding.etVersionAndroid.setText(versionAndroid);
 
