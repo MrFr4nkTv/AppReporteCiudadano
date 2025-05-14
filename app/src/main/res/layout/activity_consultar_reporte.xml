@@ -37,96 +37,158 @@
             android:layout_marginTop="16dp"
             android:text="Buscar Reporte" />
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/cardViewReporte"
+        <!-- Bloque de información del reporte -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="4dp">
+            android:orientation="vertical"
+            android:background="?android:attr/colorBackground"
+            android:padding="16dp"
+            android:layout_marginTop="16dp">
 
-            <LinearLayout
+            <!-- Título -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:text="Título"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/tvTitulo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:layout_marginBottom="8dp"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@android:color/darker_gray" android:layout_marginBottom="8dp"/>
 
-                <TextView
-                    android:id="@+id/tvTitulo"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+            <!-- Descripción -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Descripción"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/tvDescripcion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:layout_marginBottom="8dp"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@android:color/darker_gray" android:layout_marginBottom="8dp"/>
 
-                <TextView
-                    android:id="@+id/tvFecha"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textSize="14sp" />
+            <!-- Fotografías -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fotografías"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFotos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:orientation="horizontal"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@android:color/darker_gray" android:layout_marginBottom="8dp"/>
 
-                <TextView
-                    android:id="@+id/tvDescripcion"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:textSize="16sp" />
+            <!-- Nombre -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nombre"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/tvNombreContacto"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:layout_marginBottom="8dp"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@android:color/darker_gray" android:layout_marginBottom="8dp"/>
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Fotografías"
-                    android:textStyle="bold"
-                    android:textSize="16sp" />
+            <!-- Teléfono -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Teléfono"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/tvTelefonoContacto"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:layout_marginBottom="8dp"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@android:color/darker_gray" android:layout_marginBottom="8dp"/>
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvFotos"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal"
-                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+            <!-- Dirección -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Dirección"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/tvDireccionContacto"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:layout_marginBottom="8dp"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@android:color/darker_gray" android:layout_marginBottom="8dp"/>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="24dp"
-                    android:layout_marginBottom="24dp"
-                    android:background="@android:color/darker_gray" />
+            <!-- Estado -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Estado"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/tvEstado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:layout_marginBottom="8dp"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@android:color/darker_gray" android:layout_marginBottom="8dp"/>
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Información de Contacto"
-                    android:textStyle="bold"
-                    android:textSize="16sp" />
+            <!-- Mensaje del administrador -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Mensaje del administrador"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/tvMensajeAdmin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:layout_marginBottom="8dp"/>
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@android:color/darker_gray" android:layout_marginBottom="8dp"/>
 
-                <TextView
-                    android:id="@+id/tvNombreContacto"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/tvTelefonoContacto"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/tvDireccionContacto"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textSize="14sp" />
-
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
-
+            <!-- Fecha -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fecha y Hora"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/tvFecha"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:layout_marginBottom="8dp"/>
+        </LinearLayout>
     </LinearLayout>
 
 </ScrollView> 

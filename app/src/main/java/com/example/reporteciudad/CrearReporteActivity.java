@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.widget.Toast;
@@ -47,7 +48,7 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     private static final int REQUEST_CAMERA_PERMISSION = 100;
     private static final int REQUEST_GALLERY_PERMISSION = 101;
     // URL del script de Google Apps que maneja los reportes
-    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxn8CPKL_b4roQ-9GyanMkzPdtZyGCfmCVgABqlMs4u0TJlnX1MVvrvgxe6B8IVUYib6g/exec";
+    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyoruW0RIy-Y84ffDhv5T58VKOCmWSCLCVrRk25RE36sWB2PVwqcrYFFpRrVt0kihZCDQ/exec";
     // Tiempo máximo de espera para las peticiones al servidor
     private static final int TIMEOUT_MS = 30000;
     // Número máximo de intentos si falla la conexión
@@ -422,8 +423,46 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
                 connection.setConnectTimeout(TIMEOUT_MS);
                 connection.setReadTimeout(TIMEOUT_MS);
                 
+                // Añadimos headers para evitar caché
+                connection.setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
+                connection.setRequestProperty("Pragma", "no-cache");
+                connection.setRequestProperty("Expires", "0");
+                
                 int responseCode = connection.getResponseCode();
+                Log.d(TAG, "Código de respuesta: " + responseCode);
+                
                 if (responseCode >= 200 && responseCode < 300) {
+                    // Intentamos leer la respuesta para verificar que sea JSON válido
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+                    
+                    String responseStr = response.toString();
+                    Log.d(TAG, "Respuesta: " + responseStr);
+                    
+                    // Verificamos si la respuesta es HTML (error) o JSON (éxito)
+                    if (responseStr.trim().startsWith("<!DOCTYPE") || responseStr.trim().startsWith("<")) {
+                        Log.e(TAG, "Respuesta no es JSON válido: " + responseStr.substring(0, Math.min(100, responseStr.length())));
+                        retryCount++;
+                        continue;
+                    }
+                    
+                    try {
+                        // Intentamos parsear la respuesta como JSON
+                        JSONObject jsonResponse = new JSONObject(responseStr);
+                        if (jsonResponse.optString("result").equals("success")) {
+                            return true;
+                        }
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Error al parsear JSON: " + e.getMessage());
+                        retryCount++;
+                        continue;
+                    }
+                    
                     return true;
                 }
                 
@@ -441,8 +480,10 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
      */
     private String construirUrl(ReporteRequest reporteRequest) {
         StringBuilder urlBuilder = new StringBuilder(GOOGLE_SHEETS_URL);
+        // Agregamos la acción para el script de Google Apps
+        urlBuilder.append("?action=crear");
         // Agregamos todos los parámetros del reporte a la URL
-        urlBuilder.append("?codigo_reporte=").append(Uri.encode(reporteRequest.getCodigoReporte()));
+        urlBuilder.append("&codigo_reporte=").append(Uri.encode(reporteRequest.getCodigoReporte()));
         urlBuilder.append("&titulo=").append(Uri.encode(reporteRequest.getTitulo()));
         urlBuilder.append("&descripcion=").append(Uri.encode(reporteRequest.getDescripcion()));
         urlBuilder.append("&nombreContacto=").append(Uri.encode(reporteRequest.getNombreContacto()));

@@ -10,6 +10,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.reporteciudad.databinding.ActivityConsultarReporteBinding;
 import java.util.List;
 import android.util.Log;
+import android.app.ProgressDialog;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 /**
  * Actividad para consultar los detalles de un reporte existente
@@ -18,8 +22,11 @@ import android.util.Log;
 public class ConsultarReporteActivity extends AppCompatActivity {
     private static final String TAG = "ConsultarReporteActivity";
     private ActivityConsultarReporteBinding binding;
-    private ReporteManager reporteManager;
     private FotosAdapter fotosAdapter;
+    private android.widget.TextView tvEstado, tvMensajeAdmin;
+    // URL del script de Google Apps que maneja los reportes (igual al de CrearReporteActivity)
+    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyoruW0RIy-Y84ffDhv5T58VKOCmWSCLCVrRk25RE36sWB2PVwqcrYFFpRrVt0kihZCDQ/exec";
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,9 +37,14 @@ public class ConsultarReporteActivity extends AppCompatActivity {
 
         // Inicializamos todos los componentes necesarios
         setupActionBar();
-        initializeComponents();
         setupRecyclerView();
         setupButtons();
+        // Inicializo los nuevos TextView
+        tvEstado = binding.tvEstado;
+        tvMensajeAdmin = binding.tvMensajeAdmin;
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Consultando...");
+        progressDialog.setCancelable(false);
     }
 
     private void setupActionBar() {
@@ -41,11 +53,6 @@ public class ConsultarReporteActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("Consultar Reporte");
         }
-    }
-
-    private void initializeComponents() {
-        // Inicializamos el gestor de reportes que se encarga de la base de datos
-        reporteManager = new ReporteManager(this);
     }
 
     @Override
@@ -57,7 +64,7 @@ public class ConsultarReporteActivity extends AppCompatActivity {
 
     private void setupRecyclerView() {
         // Configuramos el RecyclerView para mostrar las fotos horizontalmente
-        fotosAdapter = new FotosAdapter(null, null);
+        fotosAdapter = new FotosAdapter(new java.util.ArrayList<>(), null);
         binding.rvFotos.setAdapter(fotosAdapter);
         binding.rvFotos.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
     }
@@ -68,6 +75,7 @@ public class ConsultarReporteActivity extends AppCompatActivity {
             // Obtenemos el ID del reporte y eliminamos espacios en blanco
             String idReporte = binding.etIdReporte.getText().toString().trim();
             if (!idReporte.isEmpty()) {
+                progressDialog.show();
                 buscarReporte(idReporte);
             } else {
                 Toast.makeText(this, "Por favor ingrese un ID de reporte", Toast.LENGTH_SHORT).show();
@@ -76,52 +84,114 @@ public class ConsultarReporteActivity extends AppCompatActivity {
     }
 
     private void buscarReporte(String idReporte) {
-        // Buscamos el reporte en la base de datos local
-        Reporte reporte = reporteManager.obtenerReporte(idReporte);
-        if (reporte != null) {
-            mostrarReporte(reporte);
-        } else {
-            Toast.makeText(this, "No se encontró el reporte", Toast.LENGTH_SHORT).show();
-            limpiarCampos();
-        }
-    }
-
-    private void mostrarReporte(Reporte reporte) {
-        try {
-            // Mostramos todos los datos del reporte en la interfaz
-            binding.tvTitulo.setText(reporte.getTitulo());
-            binding.tvDescripcion.setText(reporte.getDescripcion());
-            binding.tvNombreContacto.setText(reporte.getNombreContacto());
-            binding.tvTelefonoContacto.setText(reporte.getTelefonoContacto());
-            binding.tvDireccionContacto.setText(reporte.getDireccionContacto());
-
-            // Cargamos las fotos del reporte desde Base64
-            cargarFotos(reporte.getFotosBase64());
-        } catch (Exception e) {
-            Log.e(TAG, "Error al mostrar reporte", e);
-            Toast.makeText(this, "Error al mostrar el reporte", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void cargarFotos(List<String> fotosBase64) {
-        // Verificamos si hay fotos para cargar
-        if (fotosBase64 == null || fotosBase64.isEmpty()) {
-            return;
-        }
-
-        // Limpiamos las fotos anteriores y cargamos las nuevas
-        fotosAdapter.eliminarTodasLasFotos();
-        for (String fotoBase64 : fotosBase64) {
+        new Thread(() -> {
             try {
-                // Convertimos la imagen de Base64 a Bitmap
-                byte[] imageBytes = Base64.decode(fotoBase64, Base64.DEFAULT);
-                Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
-                if (bitmap != null) {
-                    fotosAdapter.agregarFoto(bitmap);
+                // Usamos la URL real del Google Apps Script
+                String url = GOOGLE_SHEETS_URL + "?action=consultar&codigo_reporte=" + idReporte;
+                Log.d(TAG, "URL de consulta: " + url);
+                
+                java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(15000); // Incrementamos el timeout
+                connection.setReadTimeout(15000);
+                
+                // Añadimos headers para evitar caché
+                connection.setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
+                connection.setRequestProperty("Pragma", "no-cache");
+                connection.setRequestProperty("Expires", "0");
+
+                int responseCode = connection.getResponseCode();
+                Log.d(TAG, "Código de respuesta: " + responseCode);
+                
+                if (responseCode == 200) {
+                    java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(connection.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+                    
+                    String responseStr = response.toString();
+                    Log.d(TAG, "Respuesta: " + responseStr);
+                    
+                    // Si la respuesta comienza con <!DOCTYPE, es un error HTML, no un JSON
+                    if (responseStr.trim().startsWith("<!DOCTYPE") || responseStr.trim().startsWith("<")) {
+                        Log.e(TAG, "Respuesta no es JSON válido: " + responseStr.substring(0, Math.min(100, responseStr.length())));
+                        runOnUiThread(() -> {
+                            Toast.makeText(this, "Error en el servidor. Contacte al administrador.", Toast.LENGTH_LONG).show();
+                            limpiarCampos();
+                        });
+                        return;
+                    }
+
+                    org.json.JSONObject jsonResponse = new org.json.JSONObject(responseStr);
+                    if (jsonResponse.optString("result").equals("success")) {
+                        String titulo = jsonResponse.optString("titulo", "");
+                        String descripcion = jsonResponse.optString("descripcion", "");
+                        String nombreContacto = jsonResponse.optString("nombreContacto", "");
+                        String telefonoContacto = jsonResponse.optString("telefonoContacto", "");
+                        String direccionContacto = jsonResponse.optString("direccionContacto", "");
+                        String estado = jsonResponse.optString("estado", "Pendiente");
+                        String mensaje = jsonResponse.optString("mensaje", "Sin mensaje");
+                        String fotosStr = jsonResponse.optString("fotos", "");
+                        String fechaHora = jsonResponse.optString("fechaHora", "");
+
+                        // Procesar las URLs de las fotos (separadas por coma)
+                        java.util.List<String> fotosUrls = new java.util.ArrayList<>();
+                        if (!fotosStr.isEmpty()) {
+                            for (String urlFoto : fotosStr.split(",")) {
+                                fotosUrls.add(urlFoto.trim());
+                            }
+                        }
+
+                        runOnUiThread(() -> {
+                            binding.tvTitulo.setText(titulo);
+                            binding.tvDescripcion.setText(descripcion);
+                            binding.tvNombreContacto.setText(nombreContacto);
+                            binding.tvTelefonoContacto.setText(telefonoContacto);
+                            binding.tvDireccionContacto.setText(direccionContacto);
+                            binding.tvFecha.setText(formatearFecha(fechaHora));
+                            tvEstado.setText(estado);
+                            tvMensajeAdmin.setText(mensaje);
+                            cargarFotosDesdeUrls(fotosUrls);
+                            progressDialog.dismiss();
+                        });
+                    } else {
+                        runOnUiThread(() -> {
+                            limpiarCampos();
+                            Toast.makeText(this, "Reporte no encontrado", Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                } else {
+                    runOnUiThread(() -> {
+                        progressDialog.dismiss();
+                        Toast.makeText(this, "Error de conexión", Toast.LENGTH_SHORT).show();
+                    });
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Error al cargar foto", e);
+                Log.e(TAG, "Error al consultar reporte: " + e.getMessage());
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(this, "Error al consultar el reporte", Toast.LENGTH_SHORT).show();
+                });
             }
+        }).start();
+    }
+
+    private void cargarFotosDesdeUrls(java.util.List<String> fotosUrls) {
+        fotosAdapter.eliminarTodasLasFotos();
+        for (String urlFoto : fotosUrls) {
+            new Thread(() -> {
+                try {
+                    java.net.URL url = new java.net.URL(urlFoto);
+                    android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(url.openConnection().getInputStream());
+                    runOnUiThread(() -> fotosAdapter.agregarFoto(bitmap));
+                } catch (Exception e) {
+                    Log.e(TAG, "Error al cargar imagen: " + e.getMessage());
+                    // Ignorar errores de carga de imagen individual
+                }
+            }).start();
         }
     }
 
@@ -132,6 +202,25 @@ public class ConsultarReporteActivity extends AppCompatActivity {
         binding.tvNombreContacto.setText("");
         binding.tvTelefonoContacto.setText("");
         binding.tvDireccionContacto.setText("");
+        binding.tvFecha.setText("");
         fotosAdapter.eliminarTodasLasFotos();
+        // Limpiamos los nuevos campos
+        tvEstado.setText("Estado: ");
+        tvMensajeAdmin.setText("Mensaje del administrador: ");
+    }
+
+    private String formatearFecha(String fechaOriginal) {
+        if (fechaOriginal == null || fechaOriginal.isEmpty()) return "";
+        // Intentar parsear formato ISO 8601
+        try {
+            SimpleDateFormat formatoEntrada = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault());
+            formatoEntrada.setLenient(true);
+            java.util.Date fecha = formatoEntrada.parse(fechaOriginal);
+            SimpleDateFormat formatoSalida = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+            return formatoSalida.format(fecha);
+        } catch (ParseException e) {
+            // Si falla, devolver la original
+            return fechaOriginal;
+        }
     }
 } 

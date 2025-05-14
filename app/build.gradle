@@ -62,6 +62,9 @@ dependencies {
     implementation libs.androidx.room.runtime
     annotationProcessor libs.androidx.room.compiler
     
+    // Gson para serialización/deserialización JSON
+    implementation 'com.google.code.gson:gson:2.10.1'
+    
     // Testing
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit

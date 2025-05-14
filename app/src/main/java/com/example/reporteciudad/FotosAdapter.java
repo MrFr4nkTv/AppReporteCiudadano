@@ -51,12 +51,15 @@ public class FotosAdapter extends RecyclerView.Adapter<FotosAdapter.FotoViewHold
     public void onBindViewHolder(@NonNull FotoViewHolder holder, int position) {
         // Mostramos la foto en el ImageView
         holder.ivFoto.setImageBitmap(fotos.get(position));
-        // Configuramos el botón de eliminar
-        holder.btnEliminarFoto.setOnClickListener(v -> {
-            if (listener != null) {
+        // Configuramos el botón de eliminar solo si el listener no es null y el botón existe
+        if (listener != null && holder.btnEliminarFoto != null) {
+            holder.btnEliminarFoto.setVisibility(View.VISIBLE);
+            holder.btnEliminarFoto.setOnClickListener(v -> {
                 listener.onEliminarClick(position);
-            }
-        });
+            });
+        } else if (holder.btnEliminarFoto != null) {
+            holder.btnEliminarFoto.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -108,7 +111,7 @@ public class FotosAdapter extends RecyclerView.Adapter<FotosAdapter.FotoViewHold
     static class FotoViewHolder extends RecyclerView.ViewHolder {
         // ImageView para mostrar la foto
         ImageView ivFoto;
-        // Botón para eliminar la foto
+        // Botón para eliminar la foto (puede ser null si no existe en el layout)
         ImageButton btnEliminarFoto;
 
         /**
@@ -119,7 +122,13 @@ public class FotosAdapter extends RecyclerView.Adapter<FotosAdapter.FotoViewHold
             super(itemView);
             // Inicializamos las vistas
             ivFoto = itemView.findViewById(R.id.ivFoto);
-            btnEliminarFoto = itemView.findViewById(R.id.btnEliminarFoto);
+            // Buscamos el botón de eliminar solo si existe en el layout
+            int resId = itemView.getContext().getResources().getIdentifier("btnEliminarFoto", "id", itemView.getContext().getPackageName());
+            if (resId != 0) {
+                btnEliminarFoto = itemView.findViewById(resId);
+            } else {
+                btnEliminarFoto = null;
+            }
         }
     }
 } 
