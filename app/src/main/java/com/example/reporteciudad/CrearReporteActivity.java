@@ -49,7 +49,7 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     private static final int REQUEST_CAMERA_PERMISSION = 100;
     private static final int REQUEST_GALLERY_PERMISSION = 101;
     // URL del script de Google Apps que maneja los reportes
-    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyoruW0RIy-Y84ffDhv5T58VKOCmWSCLCVrRk25RE36sWB2PVwqcrYFFpRrVt0kihZCDQ/exec";
+    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxdMc1UuH1L1Iaf3q_VvJ0xcDqhDBz3KcF-JbEogNGIhaSlzA9q5UW0PwgHLMRcKfaAzw/exec";
     // Tiempo máximo de espera para las peticiones al servidor
     private static final int TIMEOUT_MS = 30000;
     // Número máximo de intentos si falla la conexión

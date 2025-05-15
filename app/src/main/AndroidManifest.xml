@@ -42,7 +42,7 @@
 
         <activity
             android:name=".CrearReporteActivity"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustPan" />
         <activity android:name=".ConsultarReporteActivity" />
         <activity android:name=".ContactoActivity" />
 

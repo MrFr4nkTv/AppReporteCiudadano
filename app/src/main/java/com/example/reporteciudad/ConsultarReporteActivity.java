@@ -24,7 +24,7 @@ public class ConsultarReporteActivity extends AppCompatActivity {
     private FotosAdapter fotosAdapter;
     private android.widget.TextView tvEstado, tvMensajeAdmin;
     // URL del script de Google Apps que maneja los reportes (igual al de CrearReporteActivity)
-    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyoruW0RIy-Y84ffDhv5T58VKOCmWSCLCVrRk25RE36sWB2PVwqcrYFFpRrVt0kihZCDQ/exec";
+    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxdMc1UuH1L1Iaf3q_VvJ0xcDqhDBz3KcF-JbEogNGIhaSlzA9q5UW0PwgHLMRcKfaAzw/exec";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
