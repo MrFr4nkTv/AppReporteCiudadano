@@ -13,14 +13,14 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
- * Clase encargada de subir imágenes a Imgur y obtener sus URLs
- * Utiliza OkHttp para las peticiones HTTP y maneja la compresión de imágenes
+ * PUNTO 11: MANEJO DE IMÁGENES CON IMGUR
+ * Esta clase se encarga de la optimización y subida de imágenes a Imgur
  * 
- * Características principales:
- * - Compresión automática de imágenes
- * - Redimensionamiento inteligente
- * - Manejo de errores robusto
- * - Limpieza de recursos
+ * Proceso completo:
+ * 1. Optimización de imágenes
+ * 2. Compresión inteligente
+ * 3. Subida a la API de Imgur
+ * 4. Obtención de URLs públicas
  */
 public class ImgurUploader {
     // Tag para logging
@@ -49,20 +49,9 @@ public class ImgurUploader {
     }
 
     /**
-     * Sube una imagen a Imgur y devuelve su URL
-     * 
-     * Proceso:
-     * 1. Valida la imagen de entrada
-     * 2. Redimensiona si es necesario
-     * 3. Comprime la imagen
-     * 4. Convierte a Base64
-     * 5. Sube a Imgur
-     * 6. Obtiene y devuelve la URL
-     * 
-     * @param bitmap La imagen a subir
-     * @return URL de la imagen en Imgur
-     * @throws IOException Si hay algún error en el proceso
-     * @throws IllegalArgumentException Si el bitmap es nulo
+     * Esta clase se encarga de subir las fotos a Imgur.
+     * Las procesa para que no sean muy pesadas y obtiene
+     * un link permanente que podemos guardar en la base de datos.
      */
     public String uploadImage(Bitmap bitmap) throws IOException {
         if (bitmap == null) {
@@ -104,16 +93,11 @@ public class ImgurUploader {
     }
 
     /**
-     * Realiza la petición HTTP para subir la imagen a Imgur
-     * 
-     * Proceso:
-     * 1. Prepara la petición con la imagen en Base64
-     * 2. Envía la petición a la API de Imgur
-     * 3. Procesa la respuesta para obtener la URL
-     * 
-     * @param base64Image Imagen en formato Base64
-     * @return URL de la imagen subida
-     * @throws IOException Si hay algún error en la petición o procesamiento
+     * Hace la petición a Imgur para subir la imagen:
+     * - Usa nuestra clave de API para identificarnos
+     * - Envía la imagen en formato Base64
+     * - Espera la respuesta con el link
+     * - Maneja cualquier error que pueda ocurrir
      */
     private String subirImagenAImgur(String base64Image) throws IOException {
         // Preparación de la petición HTTP
@@ -142,16 +126,11 @@ public class ImgurUploader {
     }
     
     /**
-     * Redimensiona una imagen manteniendo su proporción
-     * 
-     * Características:
-     * - Mantiene la relación de aspecto
-     * - Solo redimensiona si es necesario
-     * - Optimiza para el tamaño máximo permitido
-     * 
-     * @param image Imagen a redimensionar
-     * @param maxDimension Tamaño máximo permitido (ancho o alto)
-     * @return Imagen redimensionada o la original si no necesita cambios
+     * Ajusta el tamaño de la imagen si es necesario:
+     * - Mantiene la proporción para que no se deforme
+     * - La hace más pequeña si es muy grande
+     * - La deja igual si ya tiene buen tamaño
+     * - Ahorra datos móviles del ciudadano
      */
     private Bitmap resizeImageIfNeeded(Bitmap image, int maxDimension) {
         int width = image.getWidth();

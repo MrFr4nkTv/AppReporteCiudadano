@@ -39,9 +39,9 @@ import org.json.JSONObject;
 import org.json.JSONException;
 
 /**
- * Actividad principal para la creación de reportes ciudadanos
- * Permite tomar fotos, seleccionar de la galería y enviar reportes
- * Implementa la interfaz OnFotoClickListener para manejar la eliminación de fotos
+ * Esta es la pantalla donde los ciudadanos crean sus reportes.
+ * Aquí pueden ingresar toda la información necesaria y subir fotos
+ * del problema que quieren reportar.
  */
 public class CrearReporteActivity extends AppCompatActivity implements FotosAdapter.OnFotoClickListener {
     // Constantes para el manejo de permisos y configuración
@@ -67,7 +67,7 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     // URI de la foto temporal cuando se usa la cámara
     private Uri photoURI;
 
-    // Lista de tipos de reporte
+    // Estas son las categorías que puede elegir el ciudadano para su reporte
     private final String[] tiposReporte = {
         "ALUMBRADO PÚBLICO",
         "ANIMALES CALLEJEROS O EN SITUACIÓN DE ABANDONO",
@@ -266,7 +266,131 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     }
 
     /**
-     * Valida que todos los campos requeridos estén llenos
+     * Configura los dropdowns para colonias y tipos de reporte
+     * - Colonias: carga desde archivo local con autocompletado
+     * - Tipos de reporte: lista predefinida de opciones
+     */
+    private void setupDropdowns() {
+        // Configurar el dropdown de tipos de reporte
+        ArrayAdapter<String> tiposAdapter = new ArrayAdapter<>(
+            this,
+            android.R.layout.simple_dropdown_item_1line,
+            tiposReporte
+        );
+        binding.actvTipoReporte.setAdapter(tiposAdapter);
+
+        // Configurar el dropdown de colonias
+        List<String> colonias = cargarColonias();
+        ArrayAdapter<String> coloniasAdapter = new ArrayAdapter<>(
+            this,
+            android.R.layout.simple_dropdown_item_1line,
+            colonias
+        );
+        binding.actvColonia.setAdapter(coloniasAdapter);
+        
+        // Configuración adicional para el autocompletado de colonias
+        binding.actvColonia.setThreshold(1); // Muestra sugerencias después de 1 carácter
+        binding.actvColonia.setOnItemClickListener((parent, view, position, id) -> {
+            // Oculta el teclado cuando se selecciona una opción
+            android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) 
+                getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(binding.actvColonia.getWindowToken(), 0);
+        });
+    }
+
+    /**
+     * Carga la lista de colonias desde el archivo assets/Listado de colonias.txt
+     * El archivo contiene un select HTML con options
+     * @return Lista de colonias disponibles
+     */
+    private List<String> cargarColonias() {
+        List<String> colonias = new ArrayList<>();
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(getAssets().open("Listado de colonias.txt")));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Busca líneas que contengan la etiqueta option
+                if (line.contains("<option value=\"")) {
+                    // Extrae el valor entre las comillas del atributo value
+                    int startIndex = line.indexOf("value=\"") + 7;
+                    int endIndex = line.indexOf("\"", startIndex);
+                    if (startIndex >= 7 && endIndex > startIndex) {
+                        String colonia = line.substring(startIndex, endIndex).trim();
+                        if (!colonia.isEmpty()) {
+                            colonias.add(colonia);
+                        }
+                    }
+                }
+            }
+            reader.close();
+
+            if (colonias.isEmpty()) {
+                Log.e(TAG, "No se encontraron colonias en el archivo");
+                colonias.add("Error al cargar colonias");
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Error al cargar colonias: " + e.getMessage());
+            colonias.add("Error al cargar colonias");
+        }
+        return colonias;
+    }
+
+    /**
+     * Cuando el ciudadano presiona "Enviar Reporte":
+     * 1. Verificamos que llenó todos los campos necesarios
+     * 2. Subimos sus fotos a Imgur para tener URLs permanentes
+     * 3. Enviamos toda la información a Google Sheets
+     * 4. Le mostramos su número de reporte para seguimiento
+     */
+    private void enviarReporte() {
+        if (!validarCampos()) {
+            return;
+        }
+
+        // Deshabilitamos el botón mientras se envía para evitar envíos duplicados
+        binding.btnEnviarReporte.setEnabled(false);
+        binding.btnEnviarReporte.setText("Enviando...");
+
+        // Ejecutamos el envío en un hilo separado para no bloquear la UI
+        new Thread(() -> {
+            try {
+                // Primero subimos todas las imágenes a Imgur
+                List<String> imageLinks = subirImagenes();
+                if (imageLinks == null) {
+                    mostrarErrorEnUI("Error al subir las imágenes");
+                    return;
+                }
+
+                // Creamos el objeto con todos los datos del reporte
+                ReporteRequest reporteRequest = new ReporteRequest(
+                    binding.etNombreInteresado.getText().toString(),
+                    binding.actvColonia.getText().toString(),
+                    binding.etDireccion.getText().toString(),
+                    binding.etCelular.getText().toString(),
+                    binding.etCorreo.getText().toString(),
+                    binding.actvTipoReporte.getText().toString(),
+                    binding.etDescripcion.getText().toString(),
+                    imageLinks
+                );
+                String codigoReporte = reporteRequest.getCodigoReporte();
+                
+                // Intentamos enviar el reporte al servidor
+                if (enviarReporteAlServidor(reporteRequest)) {
+                    mostrarExitoEnUI(codigoReporte);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error al enviar reporte", e);
+                mostrarErrorEnUI("Error al enviar el reporte: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    /**
+     * Antes de enviar el reporte, nos aseguramos que:
+     * - Ingresó su nombre y datos de contacto
+     * - Seleccionó la colonia y escribió la dirección
+     * - Eligió un tipo de reporte y lo describió
+     * - Subió al menos una foto como evidencia
      */
     private boolean validarCampos() {
         if (binding.etNombreInteresado.getText().toString().isEmpty()) {
@@ -353,53 +477,10 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     }
 
     /**
-     * Proceso principal para enviar el reporte
-     */
-    private void enviarReporte() {
-        if (!validarCampos()) {
-            return;
-        }
-
-        // Deshabilitamos el botón mientras se envía para evitar envíos duplicados
-        binding.btnEnviarReporte.setEnabled(false);
-        binding.btnEnviarReporte.setText("Enviando...");
-
-        // Ejecutamos el envío en un hilo separado para no bloquear la UI
-        new Thread(() -> {
-            try {
-                // Primero subimos todas las imágenes a Imgur
-                List<String> imageLinks = subirImagenes();
-                if (imageLinks == null) {
-                    mostrarErrorEnUI("Error al subir las imágenes");
-                    return;
-                }
-
-                // Creamos el objeto con todos los datos del reporte
-                ReporteRequest reporteRequest = new ReporteRequest(
-                    binding.etNombreInteresado.getText().toString(),
-                    binding.actvColonia.getText().toString(),
-                    binding.etDireccion.getText().toString(),
-                    binding.etCelular.getText().toString(),
-                    binding.etCorreo.getText().toString(),
-                    binding.actvTipoReporte.getText().toString(),
-                    binding.etDescripcion.getText().toString(),
-                    imageLinks
-                );
-                String codigoReporte = reporteRequest.getCodigoReporte();
-                
-                // Intentamos enviar el reporte al servidor
-                if (enviarReporteAlServidor(reporteRequest)) {
-                    mostrarExitoEnUI(codigoReporte);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error al enviar reporte", e);
-                mostrarErrorEnUI("Error al enviar el reporte: " + e.getMessage());
-            }
-        }).start();
-    }
-
-    /**
-     * Sube todas las imágenes a Imgur y devuelve sus URLs
+     * Las fotos se procesan antes de subirlas:
+     * - Se comprimen para que no sean muy pesadas
+     * - Se suben a Imgur para tener un link permanente
+     * - Si algo falla, le avisamos al ciudadano
      */
     private List<String> subirImagenes() {
         try {
@@ -421,7 +502,10 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     }
 
     /**
-     * Envía el reporte al servidor con reintentos en caso de fallo
+     * La información se guarda en Google Sheets para que:
+     * - Los administradores puedan ver todos los reportes
+     * - Puedan actualizar el estado del reporte
+     * - El ciudadano pueda consultar su reporte después
      */
     private boolean enviarReporteAlServidor(ReporteRequest reporteRequest) {
         // Construimos la URL con todos los parámetros del reporte
@@ -545,44 +629,5 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
             binding.btnEnviarReporte.setEnabled(true);
             binding.btnEnviarReporte.setText("Enviar Reporte");
         });
-    }
-
-    private void setupDropdowns() {
-        // Configurar el dropdown de tipos de reporte
-        ArrayAdapter<String> tiposAdapter = new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_dropdown_item_1line,
-            tiposReporte
-        );
-        binding.actvTipoReporte.setAdapter(tiposAdapter);
-
-        // Configurar el dropdown de colonias
-        List<String> colonias = cargarColonias();
-        ArrayAdapter<String> coloniasAdapter = new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_dropdown_item_1line,
-            colonias
-        );
-        binding.actvColonia.setAdapter(coloniasAdapter);
-    }
-
-    private List<String> cargarColonias() {
-        List<String> colonias = new ArrayList<>();
-        try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(getAssets().open("colonias.txt")));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.contains("value=\"") && line.contains("\"")) {
-                    String colonia = line.substring(line.indexOf("value=\"") + 7, line.indexOf("\"", line.indexOf("value=\"") + 7));
-                    if (!colonia.isEmpty()) {
-                        colonias.add(colonia);
-                    }
-                }
-            }
-            reader.close();
-        } catch (IOException e) {
-            Log.e(TAG, "Error al cargar colonias", e);
-        }
-        return colonias;
     }
 } 

@@ -40,7 +40,9 @@
             android:exported="false">
         </activity>
 
-        <activity android:name=".CrearReporteActivity" />
+        <activity
+            android:name=".CrearReporteActivity"
+            android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ConsultarReporteActivity" />
         <activity android:name=".ContactoActivity" />
 
