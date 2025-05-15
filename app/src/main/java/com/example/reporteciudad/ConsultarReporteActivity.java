@@ -10,7 +10,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.reporteciudad.databinding.ActivityConsultarReporteBinding;
 import java.util.List;
 import android.util.Log;
-import android.app.ProgressDialog;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -26,7 +25,6 @@ public class ConsultarReporteActivity extends AppCompatActivity {
     private android.widget.TextView tvEstado, tvMensajeAdmin;
     // URL del script de Google Apps que maneja los reportes (igual al de CrearReporteActivity)
     private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyoruW0RIy-Y84ffDhv5T58VKOCmWSCLCVrRk25RE36sWB2PVwqcrYFFpRrVt0kihZCDQ/exec";
-    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,9 +40,6 @@ public class ConsultarReporteActivity extends AppCompatActivity {
         // Inicializo los nuevos TextView
         tvEstado = binding.tvEstado;
         tvMensajeAdmin = binding.tvMensajeAdmin;
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Consultando...");
-        progressDialog.setCancelable(false);
     }
 
     private void setupActionBar() {
@@ -75,7 +70,9 @@ public class ConsultarReporteActivity extends AppCompatActivity {
             // Obtenemos el ID del reporte y eliminamos espacios en blanco
             String idReporte = binding.etIdReporte.getText().toString().trim();
             if (!idReporte.isEmpty()) {
-                progressDialog.show();
+                // Cambiamos el texto del botón y lo deshabilitamos durante la búsqueda
+                binding.btnBuscar.setText("Consultando...");
+                binding.btnBuscar.setEnabled(false);
                 buscarReporte(idReporte);
             } else {
                 Toast.makeText(this, "Por favor ingrese un ID de reporte", Toast.LENGTH_SHORT).show();
@@ -119,6 +116,7 @@ public class ConsultarReporteActivity extends AppCompatActivity {
                     if (responseStr.trim().startsWith("<!DOCTYPE") || responseStr.trim().startsWith("<")) {
                         Log.e(TAG, "Respuesta no es JSON válido: " + responseStr.substring(0, Math.min(100, responseStr.length())));
                         runOnUiThread(() -> {
+                            restaurarBoton();
                             Toast.makeText(this, "Error en el servidor. Contacte al administrador.", Toast.LENGTH_LONG).show();
                             limpiarCampos();
                         });
@@ -155,28 +153,34 @@ public class ConsultarReporteActivity extends AppCompatActivity {
                             tvEstado.setText(estado);
                             tvMensajeAdmin.setText(mensaje);
                             cargarFotosDesdeUrls(fotosUrls);
-                            progressDialog.dismiss();
+                            restaurarBoton();
                         });
                     } else {
                         runOnUiThread(() -> {
+                            restaurarBoton();
                             limpiarCampos();
                             Toast.makeText(this, "Reporte no encontrado", Toast.LENGTH_SHORT).show();
                         });
                     }
                 } else {
                     runOnUiThread(() -> {
-                        progressDialog.dismiss();
+                        restaurarBoton();
                         Toast.makeText(this, "Error de conexión", Toast.LENGTH_SHORT).show();
                     });
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error al consultar reporte: " + e.getMessage());
                 runOnUiThread(() -> {
-                    progressDialog.dismiss();
+                    restaurarBoton();
                     Toast.makeText(this, "Error al consultar el reporte", Toast.LENGTH_SHORT).show();
                 });
             }
         }).start();
+    }
+
+    private void restaurarBoton() {
+        binding.btnBuscar.setText("Buscar Reporte");
+        binding.btnBuscar.setEnabled(true);
     }
 
     private void cargarFotosDesdeUrls(java.util.List<String> fotosUrls) {
@@ -205,8 +209,8 @@ public class ConsultarReporteActivity extends AppCompatActivity {
         binding.tvFecha.setText("");
         fotosAdapter.eliminarTodasLasFotos();
         // Limpiamos los nuevos campos
-        tvEstado.setText("Estado: ");
-        tvMensajeAdmin.setText("Mensaje del administrador: ");
+        tvEstado.setText("");
+        tvMensajeAdmin.setText("");
     }
 
     private String formatearFecha(String fechaOriginal) {

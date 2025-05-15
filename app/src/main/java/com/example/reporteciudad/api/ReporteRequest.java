@@ -14,8 +14,28 @@ public class ReporteRequest {
     private final String codigoReporte;
     
     @Expose
-    @SerializedName("titulo")
-    private final String titulo;
+    @SerializedName("nombre_interesado")
+    private final String nombreInteresado;
+    
+    @Expose
+    @SerializedName("colonia")
+    private final String colonia;
+    
+    @Expose
+    @SerializedName("direccion")
+    private final String direccion;
+    
+    @Expose
+    @SerializedName("celular")
+    private final String celular;
+    
+    @Expose
+    @SerializedName("correo")
+    private final String correo;
+    
+    @Expose
+    @SerializedName("tipo_reporte")
+    private final String tipoReporte;
     
     @Expose
     @SerializedName("descripcion")
@@ -24,28 +44,19 @@ public class ReporteRequest {
     @Expose
     @SerializedName("fotos")
     private final List<String> fotos;
-    
-    @Expose
-    @SerializedName("nombreContacto")
-    private final String nombreContacto;
-    
-    @Expose
-    @SerializedName("telefonoContacto")
-    private final String telefonoContacto;
-    
-    @Expose
-    @SerializedName("direccionContacto")
-    private final String direccionContacto;
 
-    public ReporteRequest(String titulo, String descripcion, List<String> fotos,
-                         String nombreContacto, String telefonoContacto, String direccionContacto) {
+    public ReporteRequest(String nombreInteresado, String colonia, String direccion,
+                         String celular, String correo, String tipoReporte,
+                         String descripcion, List<String> fotos) {
         this.codigoReporte = generarCodigoReporte();
-        this.titulo = titulo;
+        this.nombreInteresado = nombreInteresado;
+        this.colonia = colonia;
+        this.direccion = direccion;
+        this.celular = celular;
+        this.correo = correo;
+        this.tipoReporte = tipoReporte;
         this.descripcion = descripcion;
         this.fotos = fotos;
-        this.nombreContacto = nombreContacto;
-        this.telefonoContacto = telefonoContacto;
-        this.direccionContacto = direccionContacto;
     }
 
     private String generarCodigoReporte() {
@@ -61,10 +72,12 @@ public class ReporteRequest {
     
     // Getters
     public String getCodigoReporte() { return codigoReporte; }
-    public String getTitulo() { return titulo; }
+    public String getNombreInteresado() { return nombreInteresado; }
+    public String getColonia() { return colonia; }
+    public String getDireccion() { return direccion; }
+    public String getCelular() { return celular; }
+    public String getCorreo() { return correo; }
+    public String getTipoReporte() { return tipoReporte; }
     public String getDescripcion() { return descripcion; }
     public List<String> getFotos() { return fotos; }
-    public String getNombreContacto() { return nombreContacto; }
-    public String getTelefonoContacto() { return telefonoContacto; }
-    public String getDireccionContacto() { return direccionContacto; }
 } 

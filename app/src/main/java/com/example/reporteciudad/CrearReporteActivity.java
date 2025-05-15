@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
+import android.widget.ArrayAdapter;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -66,6 +67,17 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
     // URI de la foto temporal cuando se usa la cámara
     private Uri photoURI;
 
+    // Lista de tipos de reporte
+    private final String[] tiposReporte = {
+        "ALUMBRADO PÚBLICO",
+        "ANIMALES CALLEJEROS O EN SITUACIÓN DE ABANDONO",
+        "BACHES",
+        "BASURA O ESCOMBRO",
+        "FUMIGACIÓN O PLAGAS",
+        "FUGAS O DRENAJE",
+        "OTRO ASUNTO"
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,6 +91,7 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
         setupRecyclerView();
         setupLaunchers();
         setupButtons();
+        setupDropdowns();
     }
 
     /**
@@ -256,24 +269,32 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
      * Valida que todos los campos requeridos estén llenos
      */
     private boolean validarCampos() {
-        if (binding.etTitulo.getText().toString().isEmpty()) {
-            Toast.makeText(this, "Por favor ingrese un título", Toast.LENGTH_SHORT).show();
+        if (binding.etNombreInteresado.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Por favor ingrese el nombre del interesado", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (binding.actvColonia.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Por favor seleccione una colonia", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (binding.etDireccion.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Por favor ingrese la dirección", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (binding.etCelular.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Por favor ingrese un número de celular", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (binding.etCorreo.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Por favor ingrese un correo electrónico", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (binding.actvTipoReporte.getText().toString().isEmpty()) {
+            Toast.makeText(this, "Por favor seleccione un tipo de reporte", Toast.LENGTH_SHORT).show();
             return false;
         }
         if (binding.etDescripcion.getText().toString().isEmpty()) {
             Toast.makeText(this, "Por favor ingrese una descripción", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        if (binding.etNombreContacto.getText().toString().isEmpty()) {
-            Toast.makeText(this, "Por favor ingrese su nombre", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        if (binding.etTelefonoContacto.getText().toString().isEmpty()) {
-            Toast.makeText(this, "Por favor ingrese su teléfono", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        if (binding.etDireccionContacto.getText().toString().isEmpty()) {
-            Toast.makeText(this, "Por favor ingrese su dirección", Toast.LENGTH_SHORT).show();
             return false;
         }
         if (fotos.isEmpty()) {
@@ -320,11 +341,13 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
      * Limpia todos los campos del formulario
      */
     private void limpiarCampos() {
-        binding.etTitulo.setText("");
+        binding.etNombreInteresado.setText("");
+        binding.actvColonia.setText("");
+        binding.etDireccion.setText("");
+        binding.etCelular.setText("");
+        binding.etCorreo.setText("");
+        binding.actvTipoReporte.setText("");
         binding.etDescripcion.setText("");
-        binding.etNombreContacto.setText("");
-        binding.etTelefonoContacto.setText("");
-        binding.etDireccionContacto.setText("");
         fotos.clear();
         fotosAdapter.notifyDataSetChanged();
     }
@@ -352,7 +375,16 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
                 }
 
                 // Creamos el objeto con todos los datos del reporte
-                ReporteRequest reporteRequest = crearReporteRequest(imageLinks);
+                ReporteRequest reporteRequest = new ReporteRequest(
+                    binding.etNombreInteresado.getText().toString(),
+                    binding.actvColonia.getText().toString(),
+                    binding.etDireccion.getText().toString(),
+                    binding.etCelular.getText().toString(),
+                    binding.etCorreo.getText().toString(),
+                    binding.actvTipoReporte.getText().toString(),
+                    binding.etDescripcion.getText().toString(),
+                    imageLinks
+                );
                 String codigoReporte = reporteRequest.getCodigoReporte();
                 
                 // Intentamos enviar el reporte al servidor
@@ -386,20 +418,6 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
             Log.e(TAG, "Error al subir imágenes", e);
             return null;
         }
-    }
-
-    /**
-     * Crea el objeto ReporteRequest con los datos del formulario
-     */
-    private ReporteRequest crearReporteRequest(List<String> imageLinks) {
-        return new ReporteRequest(
-            binding.etTitulo.getText().toString(),
-            binding.etDescripcion.getText().toString(),
-            imageLinks,
-            binding.etNombreContacto.getText().toString(),
-            binding.etTelefonoContacto.getText().toString(),
-            binding.etDireccionContacto.getText().toString()
-        );
     }
 
     /**
@@ -484,11 +502,13 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
         urlBuilder.append("?action=crear");
         // Agregamos todos los parámetros del reporte a la URL
         urlBuilder.append("&codigo_reporte=").append(Uri.encode(reporteRequest.getCodigoReporte()));
-        urlBuilder.append("&titulo=").append(Uri.encode(reporteRequest.getTitulo()));
+        urlBuilder.append("&nombre_interesado=").append(Uri.encode(reporteRequest.getNombreInteresado()));
+        urlBuilder.append("&colonia=").append(Uri.encode(reporteRequest.getColonia()));
+        urlBuilder.append("&direccion=").append(Uri.encode(reporteRequest.getDireccion()));
+        urlBuilder.append("&celular=").append(Uri.encode(reporteRequest.getCelular()));
+        urlBuilder.append("&correo=").append(Uri.encode(reporteRequest.getCorreo()));
+        urlBuilder.append("&tipo_reporte=").append(Uri.encode(reporteRequest.getTipoReporte()));
         urlBuilder.append("&descripcion=").append(Uri.encode(reporteRequest.getDescripcion()));
-        urlBuilder.append("&nombreContacto=").append(Uri.encode(reporteRequest.getNombreContacto()));
-        urlBuilder.append("&telefonoContacto=").append(Uri.encode(reporteRequest.getTelefonoContacto()));
-        urlBuilder.append("&direccionContacto=").append(Uri.encode(reporteRequest.getDireccionContacto()));
         
         // Concatenamos todas las URLs de las fotos
         StringBuilder fotosStr = new StringBuilder();
@@ -525,5 +545,44 @@ public class CrearReporteActivity extends AppCompatActivity implements FotosAdap
             binding.btnEnviarReporte.setEnabled(true);
             binding.btnEnviarReporte.setText("Enviar Reporte");
         });
+    }
+
+    private void setupDropdowns() {
+        // Configurar el dropdown de tipos de reporte
+        ArrayAdapter<String> tiposAdapter = new ArrayAdapter<>(
+            this,
+            android.R.layout.simple_dropdown_item_1line,
+            tiposReporte
+        );
+        binding.actvTipoReporte.setAdapter(tiposAdapter);
+
+        // Configurar el dropdown de colonias
+        List<String> colonias = cargarColonias();
+        ArrayAdapter<String> coloniasAdapter = new ArrayAdapter<>(
+            this,
+            android.R.layout.simple_dropdown_item_1line,
+            colonias
+        );
+        binding.actvColonia.setAdapter(coloniasAdapter);
+    }
+
+    private List<String> cargarColonias() {
+        List<String> colonias = new ArrayList<>();
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(getAssets().open("colonias.txt")));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("value=\"") && line.contains("\"")) {
+                    String colonia = line.substring(line.indexOf("value=\"") + 7, line.indexOf("\"", line.indexOf("value=\"") + 7));
+                    if (!colonia.isEmpty()) {
+                        colonias.add(colonia);
+                    }
+                }
+            }
+            reader.close();
+        } catch (IOException e) {
+            Log.e(TAG, "Error al cargar colonias", e);
+        }
+        return colonias;
     }
 } 
