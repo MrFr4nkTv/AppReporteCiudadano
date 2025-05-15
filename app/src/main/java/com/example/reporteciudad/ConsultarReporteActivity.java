@@ -22,7 +22,8 @@ public class ConsultarReporteActivity extends AppCompatActivity {
     private static final String TAG = "ConsultarReporteActivity";
     private ActivityConsultarReporteBinding binding;
     private FotosAdapter fotosAdapter;
-    private android.widget.TextView tvEstado, tvMensajeAdmin;
+    // Declaramos todos los TextView para los campos del reporte
+    private android.widget.TextView tvEstado, tvMensajeAdmin, tvColonia, tvCorreo;
     // URL del script de Google Apps que maneja los reportes (igual al de CrearReporteActivity)
     private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxdMc1UuH1L1Iaf3q_VvJ0xcDqhDBz3KcF-JbEogNGIhaSlzA9q5UW0PwgHLMRcKfaAzw/exec";
 
@@ -37,9 +38,11 @@ public class ConsultarReporteActivity extends AppCompatActivity {
         setupActionBar();
         setupRecyclerView();
         setupButtons();
-        // Inicializo los nuevos TextView
+        // Inicializamos todos los TextView
         tvEstado = binding.tvEstado;
         tvMensajeAdmin = binding.tvMensajeAdmin;
+        tvColonia = binding.tvColonia;
+        tvCorreo = binding.tvCorreo;
     }
 
     private void setupActionBar() {
@@ -125,15 +128,19 @@ public class ConsultarReporteActivity extends AppCompatActivity {
 
                     org.json.JSONObject jsonResponse = new org.json.JSONObject(responseStr);
                     if (jsonResponse.optString("result").equals("success")) {
-                        String titulo = jsonResponse.optString("titulo", "");
+                        // Obtenemos todos los campos del reporte con los nombres exactos del AppScript
+                        String codigoReporte = jsonResponse.optString("codigo_reporte", "");
+                        String nombreInteresado = jsonResponse.optString("nombre_interesado", "");
+                        String colonia = jsonResponse.optString("colonia", "");
+                        String direccion = jsonResponse.optString("direccion", "");
+                        String celular = jsonResponse.optString("celular", "");
+                        String correo = jsonResponse.optString("correo", "");
+                        String tipoReporte = jsonResponse.optString("tipo_reporte", "");
                         String descripcion = jsonResponse.optString("descripcion", "");
-                        String nombreContacto = jsonResponse.optString("nombreContacto", "");
-                        String telefonoContacto = jsonResponse.optString("telefonoContacto", "");
-                        String direccionContacto = jsonResponse.optString("direccionContacto", "");
-                        String estado = jsonResponse.optString("estado", "Pendiente");
-                        String mensaje = jsonResponse.optString("mensaje", "Sin mensaje");
                         String fotosStr = jsonResponse.optString("fotos", "");
                         String fechaHora = jsonResponse.optString("fechaHora", "");
+                        String estado = jsonResponse.optString("estado", "Pendiente");
+                        String mensaje = jsonResponse.optString("mensaje", "Sin mensaje");
 
                         // Procesar las URLs de las fotos (separadas por coma)
                         java.util.List<String> fotosUrls = new java.util.ArrayList<>();
@@ -144,14 +151,17 @@ public class ConsultarReporteActivity extends AppCompatActivity {
                         }
 
                         runOnUiThread(() -> {
-                            binding.tvTitulo.setText(titulo);
+                            binding.tvTitulo.setText(tipoReporte);
                             binding.tvDescripcion.setText(descripcion);
-                            binding.tvNombreContacto.setText(nombreContacto);
-                            binding.tvTelefonoContacto.setText(telefonoContacto);
-                            binding.tvDireccionContacto.setText(direccionContacto);
+                            binding.tvNombreContacto.setText(nombreInteresado);
+                            binding.tvTelefonoContacto.setText(celular);
+                            binding.tvDireccionContacto.setText(direccion);
                             binding.tvFecha.setText(formatearFecha(fechaHora));
                             tvEstado.setText(estado);
                             tvMensajeAdmin.setText(mensaje);
+                            // Mostramos los nuevos campos
+                            tvColonia.setText(colonia);
+                            tvCorreo.setText(correo);
                             cargarFotosDesdeUrls(fotosUrls);
                             restaurarBoton();
                         });
@@ -208,9 +218,12 @@ public class ConsultarReporteActivity extends AppCompatActivity {
         binding.tvDireccionContacto.setText("");
         binding.tvFecha.setText("");
         fotosAdapter.eliminarTodasLasFotos();
-        // Limpiamos los nuevos campos
+        // Limpiamos los campos de estado y mensaje
         tvEstado.setText("");
         tvMensajeAdmin.setText("");
+        // Limpiamos los nuevos campos
+        tvColonia.setText("");
+        tvCorreo.setText("");
     }
 
     private String formatearFecha(String fechaOriginal) {
