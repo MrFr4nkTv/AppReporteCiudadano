@@ -142,13 +142,37 @@ public class ConsultarReporteActivity extends AppCompatActivity {
                         String estado = jsonResponse.optString("estado", "Pendiente");
                         String mensaje = jsonResponse.optString("mensaje", "Sin mensaje");
 
-                        // Procesar las URLs de las fotos (separadas por coma)
+                        // Procesar las URLs de las fotos 
                         java.util.List<String> fotosUrls = new java.util.ArrayList<>();
                         if (!fotosStr.isEmpty()) {
-                            for (String urlFoto : fotosStr.split(",")) {
-                                fotosUrls.add(urlFoto.trim());
+                            // Revisamos si el formato contiene fórmulas HYPERLINK o son URLs directas
+                            if (fotosStr.contains("HYPERLINK")) {
+                                // Formato de fórmula HYPERLINK
+                                String[] formulas = fotosStr.split("\n");
+                                for (String formula : formulas) {
+                                    // Extraer la URL entre comillas
+                                    int startIndex = formula.indexOf("\"");
+                                    int endIndex = formula.indexOf("\"", startIndex + 1);
+                                    if (startIndex >= 0 && endIndex > startIndex) {
+                                        String extractedUrl = formula.substring(startIndex + 1, endIndex);
+                                        fotosUrls.add(extractedUrl.trim());
+                                        Log.d(TAG, "URL de foto extraída: " + extractedUrl);
+                                    }
+                                }
+                            } else {
+                                // Formato de URLs separadas por comas
+                                String[] urls = fotosStr.split(",");
+                                for (String urlString : urls) {
+                                    if (!urlString.trim().isEmpty()) {
+                                        fotosUrls.add(urlString.trim());
+                                        Log.d(TAG, "URL de foto: " + urlString.trim());
+                                    }
+                                }
                             }
                         }
+                        
+                        // Registramos cuántas fotos se encontraron
+                        Log.d(TAG, "Número de fotos encontradas: " + fotosUrls.size());
 
                         runOnUiThread(() -> {
                             binding.tvTitulo.setText(tipoReporte);
@@ -195,15 +219,41 @@ public class ConsultarReporteActivity extends AppCompatActivity {
 
     private void cargarFotosDesdeUrls(java.util.List<String> fotosUrls) {
         fotosAdapter.eliminarTodasLasFotos();
+        
+        // Si no hay fotos para cargar, terminamos
+        if (fotosUrls.isEmpty()) {
+            Log.d(TAG, "No hay fotos para cargar");
+            return;
+        }
+        
+        // Intentamos cargar cada foto en un hilo separado
         for (String urlFoto : fotosUrls) {
+            if (urlFoto.isEmpty()) continue;
+            
+            Log.d(TAG, "Intentando cargar foto desde URL: " + urlFoto);
+            
             new Thread(() -> {
                 try {
+                    // Configuramos la conexión con timeout
                     java.net.URL url = new java.net.URL(urlFoto);
-                    android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(url.openConnection().getInputStream());
-                    runOnUiThread(() -> fotosAdapter.agregarFoto(bitmap));
+                    java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+                    connection.setConnectTimeout(15000);
+                    connection.setReadTimeout(15000);
+                    
+                    // Leemos la imagen
+                    android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(connection.getInputStream());
+                    
+                    if (bitmap != null) {
+                        // Si se pudo cargar la imagen, la agregamos al adaptador
+                        runOnUiThread(() -> {
+                            fotosAdapter.agregarFoto(bitmap);
+                            Log.d(TAG, "Foto cargada correctamente desde: " + urlFoto);
+                        });
+                    } else {
+                        Log.e(TAG, "No se pudo decodificar la imagen: " + urlFoto);
+                    }
                 } catch (Exception e) {
-                    Log.e(TAG, "Error al cargar imagen: " + e.getMessage());
-                    // Ignorar errores de carga de imagen individual
+                    Log.e(TAG, "Error al cargar imagen desde " + urlFoto + ": " + e.getMessage(), e);
                 }
             }).start();
         }
