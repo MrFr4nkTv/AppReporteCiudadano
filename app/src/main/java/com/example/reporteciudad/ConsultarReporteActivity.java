@@ -25,7 +25,7 @@ public class ConsultarReporteActivity extends AppCompatActivity {
     // Declaramos todos los TextView para los campos del reporte
     private android.widget.TextView tvEstado, tvMensajeAdmin, tvColonia, tvCorreo;
     // URL del script de Google Apps que maneja los reportes (igual al de CrearReporteActivity)
-    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxdMc1UuH1L1Iaf3q_VvJ0xcDqhDBz3KcF-JbEogNGIhaSlzA9q5UW0PwgHLMRcKfaAzw/exec";
+    private static final String GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxgngYX6Sn_UaoR1rHx4RWt4BTvUap5s8hzM29niwHwrtJKBizK2nV-n24mQg4SDLvoUA/exec";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,7 +113,7 @@ public class ConsultarReporteActivity extends AppCompatActivity {
                     reader.close();
                     
                     String responseStr = response.toString();
-                    Log.d(TAG, "Respuesta: " + responseStr);
+                    Log.d(TAG, "Respuesta completa del servidor: " + responseStr);
                     
                     // Si la respuesta comienza con <!DOCTYPE, es un error HTML, no un JSON
                     if (responseStr.trim().startsWith("<!DOCTYPE") || responseStr.trim().startsWith("<")) {
@@ -145,34 +145,61 @@ public class ConsultarReporteActivity extends AppCompatActivity {
                         // Procesar las URLs de las fotos 
                         java.util.List<String> fotosUrls = new java.util.ArrayList<>();
                         if (!fotosStr.isEmpty()) {
-                            // Revisamos si el formato contiene fórmulas HYPERLINK o son URLs directas
-                            if (fotosStr.contains("HYPERLINK")) {
-                                // Formato de fórmula HYPERLINK
-                                String[] formulas = fotosStr.split("\n");
-                                for (String formula : formulas) {
-                                    // Extraer la URL entre comillas
-                                    int startIndex = formula.indexOf("\"");
-                                    int endIndex = formula.indexOf("\"", startIndex + 1);
-                                    if (startIndex >= 0 && endIndex > startIndex) {
-                                        String extractedUrl = formula.substring(startIndex + 1, endIndex);
-                                        fotosUrls.add(extractedUrl.trim());
-                                        Log.d(TAG, "URL de foto extraída: " + extractedUrl);
-                                    }
-                                }
-                            } else {
-                                // Formato de URLs separadas por comas
+                            Log.d(TAG, "Datos de fotos recibidos (sin procesar): " + fotosStr);
+                            
+                            // Probemos diferentes estrategias para extraer URLs válidas
+                            
+                            // 1. Primero, intentamos procesar como URLs separadas por comas
+                            if (fotosStr.contains("http")) {
                                 String[] urls = fotosStr.split(",");
                                 for (String urlString : urls) {
-                                    if (!urlString.trim().isEmpty()) {
-                                        fotosUrls.add(urlString.trim());
-                                        Log.d(TAG, "URL de foto: " + urlString.trim());
+                                    urlString = urlString.trim();
+                                    if (!urlString.isEmpty() && urlString.startsWith("http")) {
+                                        fotosUrls.add(urlString);
+                                        Log.d(TAG, "URL directa añadida: " + urlString);
                                     }
                                 }
                             }
+                            // 2. Si no se encontraron URLs válidas, intentamos extraer de fórmulas HYPERLINK
+                            else if (fotosStr.contains("HYPERLINK")) {
+                                Log.d(TAG, "Intentando extraer URLs de fórmulas HYPERLINK");
+                                // Dividimos por líneas en caso de múltiples fórmulas
+                                String[] formulas = fotosStr.split("\n");
+                                for (String formula : formulas) {
+                                    Log.d(TAG, "Procesando fórmula: " + formula);
+                                    try {
+                                        // Patrón para extraer URL de HYPERLINK("URL";
+                                        int startIndex = formula.indexOf("HYPERLINK(\"") + 11; // +11 para omitir 'HYPERLINK("'
+                                        if (startIndex < 11) continue; // Si no encontramos 'HYPERLINK("'
+                                        
+                                        int endIndex = formula.indexOf("\"", startIndex);
+                                        if (endIndex > startIndex) {
+                                            String extractedUrl = formula.substring(startIndex, endIndex);
+                                            if (!extractedUrl.isEmpty() && extractedUrl.startsWith("http")) {
+                                                fotosUrls.add(extractedUrl);
+                                                Log.d(TAG, "URL extraída correctamente: " + extractedUrl);
+                                            } else {
+                                                Log.e(TAG, "URL extraída no válida: " + extractedUrl);
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        Log.e(TAG, "Error al extraer URL de fórmula: " + e.getMessage());
+                                    }
+                                }
+                            }
+                            // 3. Si las dos estrategias anteriores fallaron, revisamos si hay errores específicos
+                            else {
+                                Log.e(TAG, "No se pudieron extraer URLs válidas del campo fotos: " + fotosStr);
+                                if (fotosStr.equals("Ver foto 1") || fotosStr.contains("Ver foto")) {
+                                    Log.e(TAG, "Detectada etiqueta 'Ver foto' en lugar de URL - Problema en el script del servidor");
+                                }
+                            }
+                        } else {
+                            Log.d(TAG, "Campo de fotos vacío");
                         }
                         
                         // Registramos cuántas fotos se encontraron
-                        Log.d(TAG, "Número de fotos encontradas: " + fotosUrls.size());
+                        Log.d(TAG, "Número de fotos válidas encontradas: " + fotosUrls.size());
 
                         runOnUiThread(() -> {
                             binding.tvTitulo.setText(tipoReporte);
@@ -220,17 +247,28 @@ public class ConsultarReporteActivity extends AppCompatActivity {
     private void cargarFotosDesdeUrls(java.util.List<String> fotosUrls) {
         fotosAdapter.eliminarTodasLasFotos();
         
-        // Si no hay fotos para cargar, terminamos
+        // Si no hay fotos para cargar, mostramos mensaje
         if (fotosUrls.isEmpty()) {
             Log.d(TAG, "No hay fotos para cargar");
+            runOnUiThread(() -> {
+                Toast.makeText(this, "No hay fotos disponibles para este reporte", Toast.LENGTH_SHORT).show();
+            });
             return;
         }
+        
+        Log.d(TAG, "Cantidad de fotos a cargar: " + fotosUrls.size());
+        Log.d(TAG, "Lista completa de URLs: " + fotosUrls.toString());
         
         // Intentamos cargar cada foto en un hilo separado
         for (String urlFoto : fotosUrls) {
             if (urlFoto.isEmpty()) continue;
             
             Log.d(TAG, "Intentando cargar foto desde URL: " + urlFoto);
+            // Verificamos si la URL parece válida
+            if (!urlFoto.startsWith("http")) {
+                Log.e(TAG, "URL no válida (no tiene protocolo): " + urlFoto);
+                continue;
+            }
             
             new Thread(() -> {
                 try {
