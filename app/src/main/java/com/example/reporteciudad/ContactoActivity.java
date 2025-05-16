@@ -103,16 +103,20 @@ public class ContactoActivity extends AppCompatActivity {
      * Abre la aplicación de correo para enviar un email
      */
     private void enviarCorreo() {
-        // Creamos el intent para enviar un correo
-        Intent emailIntent = new Intent(Intent.ACTION_SENDTO);
-        emailIntent.setData(Uri.parse("mailto:" + CORREO)); // Solo aplicaciones de correo
-        
-        // Añadimos un asunto por defecto (opcional)
-        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Contacto desde la App Reporte Ciudad");
-        
-        // Verificamos si hay alguna aplicación que pueda manejar el intent
-        if (emailIntent.resolveActivity(getPackageManager()) != null) {
+        try {
+            // Creamos el intent para enviar un correo
+            Intent emailIntent = new Intent(Intent.ACTION_SENDTO);
+            emailIntent.setData(Uri.parse("mailto:" + CORREO));
+            
+            // Añadimos asunto y cuerpo del correo (opcionales)
+            emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Contacto desde la App Reporte Ciudad");
+            emailIntent.putExtra(Intent.EXTRA_TEXT, "Hola, me comunico desde la aplicación Reporte Ciudad...");
+            
+            // Lanzamos el intent directamente sin verificar resolveActivity
             startActivity(emailIntent);
+        } catch (Exception e) {
+            // Si ocurre algún error, informamos al usuario
+            Toast.makeText(this, "No se pudo abrir la aplicación de correo", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -120,13 +124,19 @@ public class ContactoActivity extends AppCompatActivity {
      * Abre la aplicación de teléfono para realizar una llamada
      */
     private void realizarLlamada() {
-        // Creamos el intent para realizar una llamada telefónica
-        Intent callIntent = new Intent(Intent.ACTION_DIAL);
-        callIntent.setData(Uri.parse("tel:" + TELEFONO));
-        
-        // Verificamos si hay alguna aplicación que pueda manejar el intent
-        if (callIntent.resolveActivity(getPackageManager()) != null) {
+        try {
+            // Formateamos el número para asegurarnos que no tiene caracteres no válidos
+            String numeroLimpio = TELEFONO.replaceAll("[^0-9]", "");
+            
+            // Creamos el intent para el marcador telefónico
+            Intent callIntent = new Intent(Intent.ACTION_DIAL);
+            callIntent.setData(Uri.parse("tel:" + numeroLimpio));
+            
+            // Lanzamos el intent directamente sin verificar resolveActivity
             startActivity(callIntent);
+        } catch (Exception e) {
+            // Si ocurre algún error, informamos al usuario
+            Toast.makeText(this, "No se pudo abrir la aplicación de teléfono", Toast.LENGTH_SHORT).show();
         }
     }
 
