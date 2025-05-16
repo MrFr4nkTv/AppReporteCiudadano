@@ -1,3 +1,5 @@
+// Esta clase es una prueba unitaria de ejemplo generada automáticamente
+// No contiene pruebas específicas para el proyecto y puede ser eliminada
 package com.example.reporteciudad;
 
 import org.junit.Test;

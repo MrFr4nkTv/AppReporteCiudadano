@@ -12,10 +12,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-/**
- * PUNTO 11: MANEJO DE IMÁGENES CON IMGUR
- * Esta clase se encarga de la optimización y subida de imágenes a Imgur
- * 
+/*
  * Proceso completo:
  * 1. Optimización de imágenes
  * 2. Compresión inteligente

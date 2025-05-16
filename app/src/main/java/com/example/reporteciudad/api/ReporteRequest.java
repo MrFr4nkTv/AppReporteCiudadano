@@ -5,11 +5,7 @@ import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Esta clase representa un reporte ciudadano completo.
- * Contiene toda la información que proporciona el ciudadano
- * y se encarga de preparar los datos para enviarlos al servidor.
- */
+
 public class ReporteRequest {
     // Usamos letras y números para generar códigos fáciles de recordar
     private static final String CARACTERES_CODIGO = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

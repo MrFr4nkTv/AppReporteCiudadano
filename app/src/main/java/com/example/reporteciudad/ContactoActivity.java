@@ -30,13 +30,13 @@ import com.example.reporteciudad.databinding.DialogAgradecimientoBinding;
 public class ContactoActivity extends AppCompatActivity {
 
     // Constantes para la información de contacto
-    private static final String DIRECCION = "5 de Febrero, Ciudad Obregón, Sonora";
+    private static final String DIRECCION = "Avenida Serdán, Centro, Guaymas, Sonora";
     private static final String CORREO = "francisco.ortega240522@potros.itson.edu.mx";
     private static final String TELEFONO = "6221253841";
     
     // Constante para las coordenadas de la ubicación
-    private static final double LATITUD = 27.4885884;
-    private static final double LONGITUD = -109.9489858;
+    private static final double LATITUD = 27.9205;
+    private static final double LONGITUD = -110.8975;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
